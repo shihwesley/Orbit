@@ -23,6 +23,7 @@ echo "Creating $ORBIT_ROOT..."
 mkdir -p "$ORBIT_ROOT"
 mkdir -p "$ORBIT_ROOT/docker"
 mkdir -p "$ORBIT_ROOT/templates"
+mkdir -p "$ORBIT_ROOT/scripts"
 
 # Copy config.json from repo
 if [ -f "$REPO_ROOT/config/config.json" ]; then
@@ -31,6 +32,15 @@ if [ -f "$REPO_ROOT/config/config.json" ]; then
 else
     echo "  WARNING: config/config.json not found in repo"
 fi
+
+# Copy helper scripts
+for script in detect-project.sh orbit-init.sh; do
+    if [ -f "$REPO_ROOT/scripts/$script" ]; then
+        cp "$REPO_ROOT/scripts/$script" "$ORBIT_ROOT/scripts/$script"
+        chmod +x "$ORBIT_ROOT/scripts/$script"
+        echo "  Installed $script"
+    fi
+done
 
 # Initialize empty registry
 if [ ! -f "$ORBIT_ROOT/registry.json" ]; then
@@ -99,10 +109,20 @@ CLAUDE_EOF
     echo "  Done"
 fi
 
+# Install skill
+COMMANDS_DIR="$CLAUDE_DIR/commands"
+mkdir -p "$COMMANDS_DIR"
+if [ -f "$REPO_ROOT/skill/orbit.md" ]; then
+    cp "$REPO_ROOT/skill/orbit.md" "$COMMANDS_DIR/orbit.md"
+    echo ""
+    echo "Installed /orbit skill to $COMMANDS_DIR/orbit.md"
+fi
+
 echo ""
 echo "=== Installation Complete ==="
 echo ""
 echo "Orbit root: $ORBIT_ROOT"
+echo "Skill: $COMMANDS_DIR/orbit.md"
 echo ""
 echo "Next steps:"
 echo "  1. Run '/orbit init' in a project to register it"
