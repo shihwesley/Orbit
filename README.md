@@ -38,10 +38,9 @@ To install Orbit and its MCP server:
    bash scripts/install.sh
    ```
 
-   *This script will create the `~/.orbit` directory, initialize the audit database, and inject the enforcement protocol into your Claude configuration.*
+   This will create `~/.orbit/`, initialize the database, install the MCP server, and register it in `~/.claude.json`.
 
-3. **Verify MCP Setup**:
-   Ensure `orbit-mcp` is listed in your `~/.claude/.mcp.json`. It will start automatically when Claude is active.
+3. **Restart Claude Code** to load the MCP server, then run `/orbit status` to verify.
 
 ## 🏁 Getting Started
 

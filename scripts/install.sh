@@ -8,7 +8,7 @@ set -e
 ORBIT_ROOT="$HOME/.orbit"
 CLAUDE_DIR="$HOME/.claude"
 CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
-MCP_CONFIG="$CLAUDE_DIR/.mcp.json"
+MCP_CONFIG="$HOME/.claude.json"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
