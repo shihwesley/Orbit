@@ -34,7 +34,7 @@ else
 fi
 
 # Copy helper scripts
-for script in detect-project.sh orbit-init.sh check-docker.sh orbit-test.sh; do
+for script in detect-project.sh orbit-init.sh check-docker.sh orbit-test.sh orbit-staging.sh orbit-deploy.sh; do
     if [ -f "$REPO_ROOT/scripts/$script" ]; then
         cp "$REPO_ROOT/scripts/$script" "$ORBIT_ROOT/scripts/$script"
         chmod +x "$ORBIT_ROOT/scripts/$script"

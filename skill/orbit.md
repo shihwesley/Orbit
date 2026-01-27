@@ -7,47 +7,68 @@ description: Manage dev/test/staging/prod environments for projects
 
 Ambient environment management for `~/Source/` projects.
 
-## MCP Tools Available
+## MCP Tools
 
-The Orbit MCP server provides these tools (use directly if available):
-- `orbit_status` - Get current environment status
-- `orbit_switch_env` - Switch to dev/test/staging
-- `orbit_get_state` - Query projects, audit log, registry
-- `orbit_sidecars` - List/start/stop sidecars
-- `orbit_stop_all` - Stop all Orbit containers
+The Orbit MCP server provides these tools. **Prefer MCP tools when available**:
 
-If MCP tools are available, prefer using them over shell scripts.
+| Tool | Purpose |
+|------|---------|
+| `orbit_status` | Get current environment status |
+| `orbit_switch_env` | Switch to dev/test/staging |
+| `orbit_get_state` | Query projects, audit log, registry |
+| `orbit_sidecars` | List/start/stop sidecars |
+| `orbit_stop_all` | Stop all Orbit containers |
 
-## Commands
+## Command Routing
 
-Parse user input to determine command:
-- `/orbit` or `/orbit status` → Status
-- `/orbit init` → Init
-- `/orbit test [--fresh]` → Test (Phase 3+)
-- `/orbit staging` → Staging (Phase 3+)
-- `/orbit prod` → Prod (Phase 7)
-- `/orbit use <env>` → Manual override (Phase 5)
-- `/orbit logs` → Audit history (Phase 5)
+Parse user input:
+- `/orbit` or `/orbit status` → [Status](#orbit-status)
+- `/orbit init` → [Init](#orbit-init)
+- `/orbit test [--fresh]` → [Test](#orbit-test---fresh)
+- `/orbit staging` → [Staging](#orbit-staging)
+- `/orbit prod` → [Prod](#orbit-prod)
+- `/orbit use <env>` → [Use](#orbit-use-env)
+- `/orbit sidecars [action] [name]` → [Sidecars](#orbit-sidecars)
+- `/orbit logs [limit]` → [Logs](#orbit-logs)
+- `/orbit stop` → [Stop All](#orbit-stop)
 
 ---
 
 ## /orbit status
 
-Show current environment state for the project in the working directory.
+Show current environment state.
 
-```bash
-# Check if project is initialized
-if [ -f ".orbit/config.json" ]; then
-  cat .orbit/config.json
-else
-  echo "Project not initialized. Run /orbit init"
-fi
+### With MCP (preferred)
+```
+Call orbit_status with project_path = <cwd>
 ```
 
-Query global state if `~/.orbit/state.db` exists:
-```sql
-SELECT * FROM project_state WHERE project = '<cwd>';
-SELECT * FROM audit_log WHERE project = '<cwd>' ORDER BY timestamp DESC LIMIT 5;
+### Without MCP
+```bash
+# Check initialization
+if [ ! -f ".orbit/config.json" ]; then
+  echo "Project not initialized. Run /orbit init"
+  exit 1
+fi
+
+# Show config
+cat .orbit/config.json
+
+# Query state
+sqlite3 ~/.orbit/state.db "SELECT current_env, last_activity FROM project_state WHERE project = '$(pwd)';"
+sqlite3 ~/.orbit/state.db "SELECT timestamp, command, success FROM audit_log WHERE project = '$(pwd)' ORDER BY timestamp DESC LIMIT 5;"
+```
+
+### Output format
+```
+Project: <name>
+Type: <node|python|go|rust>
+Environment: <dev|test|staging>
+Sidecars: <running sidecars or "none">
+
+Recent activity:
+  <timestamp> <command> <success/fail>
+  ...
 ```
 
 ---
@@ -56,121 +77,230 @@ SELECT * FROM audit_log WHERE project = '<cwd>' ORDER BY timestamp DESC LIMIT 5;
 
 Initialize Orbit for current project.
 
-### Step 1: Detect Project Type
-
-Run detection script:
+### Step 1: Detect type
 ```bash
 ~/.orbit/scripts/detect-project.sh .
 ```
+Returns `type|supported` (e.g., `node|yes`).
 
-Returns `type|supported` (e.g., `node|yes` or `swift|no`).
+### Step 2: Confirm with user
 
-Detection priority:
-| File | Type | Supported |
-|------|------|-----------|
-| `package.json` | node | yes |
-| `requirements.txt` | python | yes |
-| `pyproject.toml` | python | yes |
-| `go.mod` | go | yes |
-| `Cargo.toml` | rust | yes |
-| `Package.swift` | swift | no |
-| `*.xcodeproj` | xcode | no |
-
-### Step 2: Confirm with User
-
-Use AskUserQuestion to confirm detected type:
-
+Use AskUserQuestion:
 ```
-Detected project type: [type]
-Is this correct?
-- Yes, initialize as [type]
-- No, let me specify
+question: "Detected project type: <type>. Initialize Orbit?"
+options:
+  - "Yes, initialize as <type>"
+  - "No, cancel"
 ```
 
-If unsupported (swift/xcode):
+If unsupported (`swift|no` or `xcode|no`):
 ```
-Detected: [type] (not yet supported)
 Orbit currently supports: Node.js, Python, Go, Rust
-Swift/Xcode support is planned for a future release.
+Swift/Xcode support planned for future release.
 ```
-Then stop.
+Stop here.
 
-### Step 3: Run Init Script
-
-After user confirms, run:
+### Step 3: Initialize
 ```bash
 ~/.orbit/scripts/orbit-init.sh . <type>
 ```
 
-This script:
-- Creates `.orbit/config.json` with type-specific defaults
-- Registers project in `~/.orbit/registry.json`
-- Logs to `~/.orbit/state.db`
-
-### Step 4: Confirm Success
-
-Output:
+### Step 4: Confirm
 ```
-Orbit initialized for <project_name>
+Orbit initialized for <project>
 Type: <type>
 Config: .orbit/config.json
 
-Next: Edit .orbit/config.json to add sidecars if needed
+Edit .orbit/config.json to add sidecars if needed.
 ```
-
----
 
 ---
 
 ## /orbit test [--fresh]
 
-Run tests in a fresh Docker container (clean-room testing).
+Run tests in fresh Docker container.
 
 ### Prerequisites
-- Docker must be installed and running
-- Project must be initialized (`/orbit init`)
+- Docker installed and running
+- Project initialized
 
 ### Execution
-
 ```bash
 ~/.orbit/scripts/orbit-test.sh [--fresh] .
 ```
 
-**Flags:**
-- `--fresh`: Skip Docker cache, rebuild from scratch
+### What happens
+1. Checks Docker available
+2. Starts declared sidecars
+3. Builds Docker image (--fresh skips cache)
+4. Runs tests in container
+5. Logs result to audit
+6. Reports pass/fail with duration
 
-### What it does
-1. Checks Docker is available
-2. Reads project type from `.orbit/config.json`
-3. Starts declared sidecars (postgres, redis, etc.)
-4. Builds Docker image using language-specific Dockerfile
-5. Runs tests in container
-6. Logs result to audit database
-7. Reports pass/fail with duration
-
-### If Docker not available
-Tell user:
+### If Docker unavailable
 ```
-Docker is required for /orbit test.
-Run: brew install --cask docker (macOS)
-Or: sudo apt-get install docker.io (Linux)
+Docker required for /orbit test.
+Install: brew install --cask docker (macOS)
+         sudo apt-get install docker.io (Linux)
+```
+
+---
+
+## /orbit staging
+
+Switch to staging environment (Docker with staging env vars).
+
+### With MCP (preferred)
+```
+Call orbit_switch_env with:
+  environment: "staging"
+  project_path: <cwd>
+```
+
+### Without MCP
+```bash
+# Check Docker
+~/.orbit/scripts/check-docker.sh check || {
+  echo "Docker required for staging environment"
+  exit 1
+}
+
+# Start sidecars
+SIDECARS=$(python3 -c "import json; print(' '.join(json.load(open('.orbit/config.json')).get('sidecars', [])))")
+for sidecar in $SIDECARS; do
+  docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-$sidecar up -d
+done
+
+# Update state
+sqlite3 ~/.orbit/state.db "UPDATE project_state SET current_env = 'staging', last_activity = datetime('now') WHERE project = '$(pwd)';"
+```
+
+### Output
+```
+Switched to staging environment
+Sidecars started: <list>
+```
+
+---
+
+## /orbit prod
+
+Deploy to production. **Requires confirmation.**
+
+### Step 1: Check readiness
+- Project must be initialized
+- Should have passing tests (`/orbit test`)
+- Check `.orbit/config.json` for prod configuration
+
+### Step 2: Confirm with user
+
+Use AskUserQuestion:
+```
+question: "Deploy to production?"
+options:
+  - "Yes, deploy now"
+  - "No, cancel"
+```
+
+### Step 3: Deploy
+
+Read prod config from `.orbit/config.json`:
+```json
+{
+  "prod": {
+    "provider": "vercel",
+    "method": "cli"
+  }
+}
+```
+
+**If method = "cli":**
+```bash
+# Vercel
+vercel deploy --prod
+
+# Railway
+railway up
+```
+
+**If method = "github-actions":**
+```
+Push to trigger deployment workflow.
+Ensure .github/workflows/<provider>-deploy.yml exists.
+```
+
+### Step 4: Log result
+```bash
+sqlite3 ~/.orbit/state.db "INSERT INTO audit_log (project, command, environment, success) VALUES ('$(pwd)', 'deploy', 'prod', 1);"
+```
+
+---
+
+## /orbit use <env>
+
+Manually override environment (dev/test/staging).
+
+### With MCP (preferred)
+```
+Call orbit_switch_env with:
+  environment: <env>
+  project_path: <cwd>
+```
+
+### Without MCP
+
+**Switch to dev:**
+```bash
+# Stop containers (dev is local)
+docker compose -f ~/.orbit/docker/docker-compose.yml down 2>/dev/null || true
+
+# Update state
+sqlite3 ~/.orbit/state.db "UPDATE project_state SET current_env = 'dev', sidecars_running = '[]', last_activity = datetime('now') WHERE project = '$(pwd)';"
+
+echo "Switched to dev (local) environment"
+```
+
+**Switch to test/staging:**
+```bash
+# Requires Docker
+~/.orbit/scripts/check-docker.sh check || exit 1
+
+# Start sidecars
+# ... (same as staging)
+
+# Update state
+sqlite3 ~/.orbit/state.db "UPDATE project_state SET current_env = '<env>', last_activity = datetime('now') WHERE project = '$(pwd)';"
 ```
 
 ---
 
 ## /orbit sidecars
 
-Manage sidecar services (databases, caches, etc.)
+Manage sidecar services.
 
-### List available sidecars
-- postgres (PostgreSQL 15)
-- redis (Redis 7)
-- mysql (MySQL 8)
-- mongodb (MongoDB 7)
-- rabbitmq (RabbitMQ 3)
-- aws (LocalStack for S3, SQS, DynamoDB, etc.)
+### With MCP (preferred)
+```
+# List
+Call orbit_sidecars with action: "list"
 
-### Configure sidecars
+# Start
+Call orbit_sidecars with action: "start", sidecar: "<name>"
+
+# Stop
+Call orbit_sidecars with action: "stop", sidecar: "<name>"
+```
+
+### Available sidecars
+| Name | Service | Port |
+|------|---------|------|
+| postgres | PostgreSQL 15 | 5432 |
+| redis | Redis 7 | 6379 |
+| mysql | MySQL 8 | 3306 |
+| mongodb | MongoDB 7 | 27017 |
+| rabbitmq | RabbitMQ 3 | 5672, 15672 |
+| aws | LocalStack | 4566 |
+
+### Configure in project
 Edit `.orbit/config.json`:
 ```json
 {
@@ -178,24 +308,91 @@ Edit `.orbit/config.json`:
 }
 ```
 
-### Start/stop sidecars manually
+### Manual control
 ```bash
 # Start
-docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-postgres up -d
+docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-<name> up -d
 
 # Stop
-docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-postgres down
+docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-<name> down
+
+# Status
+docker compose -f ~/.orbit/docker/docker-compose.yml ps
 ```
 
 ---
 
-## Not Yet Implemented
+## /orbit logs
 
-These commands require later phases:
+Show recent audit log entries.
 
-- `/orbit staging` - Phase 3+ (staging env with staging vars)
-- `/orbit prod` - Phase 7 (Cloud deploy)
-- `/orbit use <env>` - Phase 5 (MCP server)
-- `/orbit logs` - Phase 5 (full implementation)
+### With MCP (preferred)
+```
+Call orbit_get_state with:
+  query_type: "audit"
+  project_path: <cwd>
+  limit: 20
+```
 
-For now, inform user these are coming soon.
+### Without MCP
+```bash
+sqlite3 -header -column ~/.orbit/state.db \
+  "SELECT timestamp, command, environment,
+          CASE success WHEN 1 THEN 'ok' ELSE 'fail' END as result,
+          duration_ms
+   FROM audit_log
+   WHERE project = '$(pwd)'
+   ORDER BY timestamp DESC
+   LIMIT 20;"
+```
+
+### Output format
+```
+Recent activity for <project>:
+
+TIMESTAMP            COMMAND    ENV      RESULT  DURATION
+2024-01-15 10:30:00  test       test     ok      12500ms
+2024-01-15 10:25:00  init       dev      ok      -
+...
+```
+
+---
+
+## /orbit stop
+
+Stop all Orbit containers.
+
+### With MCP (preferred)
+```
+Call orbit_stop_all with confirm: true
+```
+
+### Without MCP
+```bash
+docker compose -f ~/.orbit/docker/docker-compose.yml down
+
+# Clear sidecar state for all projects
+sqlite3 ~/.orbit/state.db "UPDATE project_state SET sidecars_running = '[]';"
+
+echo "Stopped all Orbit containers"
+```
+
+---
+
+## Quick Reference
+
+| Command | Action |
+|---------|--------|
+| `/orbit` | Show status |
+| `/orbit init` | Initialize project |
+| `/orbit test` | Run tests in Docker |
+| `/orbit test --fresh` | Run tests (no cache) |
+| `/orbit staging` | Switch to staging |
+| `/orbit prod` | Deploy to production |
+| `/orbit use dev` | Switch to local dev |
+| `/orbit use test` | Switch to test env |
+| `/orbit sidecars` | List sidecars |
+| `/orbit sidecars start postgres` | Start PostgreSQL |
+| `/orbit sidecars stop redis` | Stop Redis |
+| `/orbit logs` | Show audit history |
+| `/orbit stop` | Stop all containers |
