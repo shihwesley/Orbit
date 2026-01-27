@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "environments": {
+    "dev": {
+      "description": "Local development",
+      "docker": false,
+      "parityCheck": true
+    },
+    "test": {
+      "description": "Docker fresh-install + unit tests",
+      "docker": true,
+      "cacheDefault": true
+    },
+    "staging": {
+      "description": "Docker with staging env vars",
+      "docker": true,
+      "mimic": true
+    },
+    "prod": {
+      "description": "Production deployment",
+      "docker": false,
+      "requiresConfirmation": true,
+      "triggersGitHubAction": true
+    }
+  },
+  "defaults": {
+    "node": "20",
+    "python": "3.11",
+    "go": "1.21",
+    "rust": "1.75"
+  },
+  "taskClassification": {
+    "model": "haiku",
+    "pollInterval": 5000
+  },
+  "providers": {
+    "vercel": {
+      "cli": "vercel deploy --prod",
+      "workflow": "vercel-deploy.yml"
+    },
+    "railway": {
+      "cli": "railway up",
+      "workflow": "railway-deploy.yml"
+    }
+  }
+}

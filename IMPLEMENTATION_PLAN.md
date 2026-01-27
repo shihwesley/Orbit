@@ -9,7 +9,7 @@
 ## User Review Required
 
 > [!IMPORTANT]
-> **Self-Enforcement**: Installation injects protocol into `~/Source/CLAUDE.md` so agents automatically use Orbit.
+> **Self-Enforcement**: Installation injects protocol into `~/.claude/CLAUDE.md` so agents automatically use Orbit.
 
 > [!WARNING]
 > **Docker Dependency**: Test, staging envs require Docker. Dev env is local-only.
@@ -23,10 +23,10 @@
 
 ### Phase 0: Installation & Enforcement
 
-#### [NEW] `~/Source/.orbit/`
+#### [NEW] `~/.orbit/`
 Global Orbit root directory with config, registry, state.db.
 
-#### [MODIFY] `~/Source/CLAUDE.md`
+#### [MODIFY] `~/.claude/CLAUDE.md`
 Inject enforcement protocol requiring agents to use Orbit.
 
 #### [NEW] `~/.claude/.mcp.json` (or update existing)
@@ -36,13 +36,13 @@ Add orbit-mcp server configuration.
 
 ### Phase 1: Foundation
 
-#### [NEW] `~/Source/.orbit/config.json`
+#### [NEW] `~/.orbit/config.json`
 Environment definitions (dev/test/staging/prod), toolchain defaults, classification settings.
 
-#### [NEW] `~/Source/.orbit/registry.json`
+#### [NEW] `~/.orbit/registry.json`
 Central catalog of all Orbit-managed projects.
 
-#### [NEW] `~/Source/.orbit/state.db`
+#### [NEW] `~/.orbit/state.db`
 SQLite database for audit log and project state tracking.
 
 ---
@@ -62,7 +62,7 @@ Per-project config: type, sidecars, test/build commands.
 
 ### Phase 3: Docker Infrastructure
 
-#### [NEW] `~/Source/.orbit/docker/`
+#### [NEW] `~/.orbit/docker/`
 - `node.dockerfile`
 - `python.dockerfile`
 - `go.dockerfile`
@@ -105,7 +105,7 @@ Workspace-aware project registration.
 #### [ENHANCE] Version parity
 Warn when local toolchain doesn't match project requirements.
 
-#### [NEW] `~/Source/.orbit/templates/` (optional)
+#### [NEW] `~/.orbit/templates/` (optional)
 GitHub Actions workflow templates.
 
 ---
@@ -136,8 +136,8 @@ GitHub Actions workflow templates.
 
 | Component | Location | Type |
 |-----------|----------|------|
-| Global config | `~/Source/.orbit/` | Directory |
+| Global config | `~/.orbit/` | Directory |
 | MCP Server | `orbit-mcp/` | TypeScript package |
 | Skill | `~/.claude/commands/orbit.md` | Markdown |
 | Per-project | `<project>/.orbit/` | Directory |
-| Docker | `~/Source/.orbit/docker/` | Dockerfiles + compose |
+| Docker | `~/.orbit/docker/` | Dockerfiles + compose |

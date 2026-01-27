@@ -52,9 +52,9 @@ stateDiagram-v2
 - AgentReverse installation
 
 ### Actions
-1. Create `~/Source/.orbit/` global directory
+1. Create `~/.orbit/` global directory
 2. Initialize `config.json`, `registry.json`, `state.db`
-3. **Inject enforcement protocol** into `~/Source/CLAUDE.md`:
+3. **Inject enforcement protocol** into `~/.claude/CLAUDE.md`:
 
 ```markdown
 ## Environment Management (MANDATORY)
@@ -72,7 +72,7 @@ All environment tasks MUST use the Orbit system.
 
 ### Files Created
 ```
-~/Source/.orbit/
+~/.orbit/
 ├── config.json      # Global env definitions
 ├── registry.json    # Project tracking
 └── state.db         # Audit log (empty schema)
@@ -188,7 +188,7 @@ CREATE TABLE project_state (
 }
 ```
 
-5. Register in global `~/Source/.orbit/registry.json`
+5. Register in global `~/.orbit/registry.json`
 6. Log to audit
 
 ### Sidecar Declaration
@@ -210,7 +210,7 @@ User edits `.orbit/config.json` to add sidecars:
 ### Directory Structure
 
 ```
-~/Source/.orbit/docker/
+~/.orbit/docker/
 ├── node.dockerfile
 ├── python.dockerfile
 ├── go.dockerfile
@@ -415,7 +415,7 @@ On `dev` env activation:
 ### GitHub Actions Templates (Optional)
 
 ```
-~/Source/.orbit/templates/
+~/.orbit/templates/
 ├── ci.yml           # Basic CI (build + test)
 └── release.yml      # Release workflow
 ```
@@ -470,7 +470,7 @@ Or for GH Actions:
 ### GH Actions Templates
 
 ```
-~/Source/.orbit/templates/
+~/.orbit/templates/
 ├── vercel-deploy.yml
 └── railway-deploy.yml
 ```

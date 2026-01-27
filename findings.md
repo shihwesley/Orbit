@@ -1,7 +1,7 @@
 # Orbit: Findings & Decisions
 
 ## Goal
-Ambient dev environment management for ~/Source/ - auto-detects context, manages Docker envs, tracks state
+Ambient dev environment management for ~/ - auto-detects context, manages Docker envs, tracks state
 
 ## Design Decisions
 
