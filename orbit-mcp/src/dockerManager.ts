@@ -45,20 +45,26 @@ export interface RunningContainer {
   image: string;
   status: string;
   ports: string;
+  labels: Record<string, string>;
 }
 
 export async function getRunningContainers(): Promise<RunningContainer[]> {
   try {
     const { stdout } = await exec(
-      'docker ps --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}"'
+      'docker ps --filter "label=com.orbit.managed=true" --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}|{{.Labels}}"'
     );
+    if (!stdout.trim()) return [];
     return stdout
       .trim()
       .split('\n')
-      .filter(line => line.includes('orbit'))
       .map(line => {
-        const [id, name, image, status, ports] = line.split('|');
-        return { id, name, image, status, ports };
+        const [id, name, image, status, ports, labelStr] = line.split('|');
+        const labels: Record<string, string> = {};
+        labelStr.split(',').forEach(l => {
+          const [k, v] = l.split('=');
+          if (k) labels[k] = v;
+        });
+        return { id, name, image, status, ports, labels };
       });
   } catch {
     return [];

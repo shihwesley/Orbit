@@ -11,7 +11,7 @@ CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
 MCP_CONFIG="$HOME/.claude.json"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="${ORBIT_PACKAGE_ROOT:-$(dirname "$SCRIPT_DIR")}"
 
 echo "=== Orbit Installation (Refactored) ==="
 echo ""
@@ -28,7 +28,7 @@ echo "Installing global configuration and scripts..."
 [ -f "$REPO_ROOT/config/schema.sql" ] && cp "$REPO_ROOT/config/schema.sql" "$ORBIT_ROOT/schema.sql"
 
 # Copy scripts and make executable
-for script in detect-project.sh detect-workspace.sh orbit-init.sh check-docker.sh check-parity.sh orbit-test.sh orbit-staging.sh orbit-deploy.sh; do
+for script in orbit-utils.sh detect-project.sh detect-workspace.sh orbit-init.sh check-docker.sh check-parity.sh orbit-test.sh orbit-staging.sh orbit-status.sh orbit-sidecars.sh; do
     if [ -f "$REPO_ROOT/scripts/$script" ]; then
         cp "$REPO_ROOT/scripts/$script" "$ORBIT_ROOT/scripts/$script"
         chmod +x "$ORBIT_ROOT/scripts/$script"

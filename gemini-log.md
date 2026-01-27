@@ -1,32 +1,70 @@
 # Gemini Code Audit Log - Orbit
 
-## Identified Issues (Pre-Refactor)
+## Identified Issues (Updated Analysis)
 
-### 1. `install.sh` - Bloated & Hybrid Complexity
+### 1. Logic Fragmentation (Scripts vs. MCP)
 
-- **Issue**: Uses a mix of Bash and Python to edit JSON files.
-- **Problem**: Creates a dependency on Python for a Node.js project installation. It's bloated because it requires 20+ lines of Python heredoc to perform a simple JSON insertion.
-- **Slop**: Over-reliance on `2>/dev/null || true` masks potential failures in core installation steps.
+- **Issue**: Both `orbit-test.sh` (Bash) and `dockerManager.ts` (TS) implement the same Docker Compose logic.
+- **Problem**: Inconsistent logging. `orbit-test.sh` writes to the SQLite DB via CLI, while MCP uses its own logic. This creates two sources of truth for how environments are managed.
+- **Slop**: Redundant "Docker Check" boilerplate in almost every shell script.
 
-### 2. `orbit-mcp/src/index.ts` - Bloated Switch Statement
+### 2. Dependency Sprawl (Python for JSON)
 
-- **Issue**: The `CallToolRequestSchema` handler contains a large, manual `switch` statement over tool names.
-- **Problem**: Adding new tools requires updating multiple places. This is a classic "bloat" pattern that lacks scalability.
-- **Slop**: Tool registration (in `TOOLS` array) is disconnected from the implementation, leading to potential drift.
+- **Issue**: Shell scripts use `python3 -c "import json; ..."` to parse project configs.
+- **Problem**: Unnecessary dependency on Python. Since this is a Node.js project, we should either use `jq` (already used in some scripts) or a small Node helper to keep the toolchain lean.
 
-### 3. `orbit-mcp/src/dockerManager.ts` - Blocking "Slop"
+### 3. Simplistic Project Detection
 
-- **Issue**: Extensive use of `execSync` for Docker commands.
-- **Problem**: `execSync` blocks the entire Node.js event loop. Since Docker commands (especially `build` and `up`) can take several minutes, the MCP server becomes unresponsive to other requests (like `orbit_status` or environment classification).
-- **Slop**: Hardcoded paths to `~/.orbit` inside the manager logic instead of using a centralized configuration or dependency injection.
+- **Issue**: `detect-project.sh` only checks for the presence of a few files.
+- **Problem**: Misses nuanced detection (e.g., distinguishing between a generic Node project and a specific framework that might need special Docker logic).
 
-### 4. `orbit-mcp/src/tools/*.ts` - Redundant "Slop"
+### 4. Brittle Container Tracking
 
-- **Issue**: Every tool manually resolves `project_path`, checks for `.orbit` existence, and reads `config.json`.
-- **Problem**: Significant code duplication across `status.ts`, `switchEnv.ts`, `sidecars.ts`, etc.
-- **Slop**: Use of synchronous `fs` methods (`readFileSync`, `existsSync`) in what should be an asynchronous MCP server.
+- **Issue**: `dockerManager.ts` filters containers using `.includes('orbit')`.
+- **Problem**: This will pull in any container with "orbit" in the name, even if it's not part of the Orbit management system. Should use labels or stricter filtering.
 
-### 5. `orbit-mcp/src/stateDb.ts` - Basic Logic
+### 5. Config Path Sloppiness
 
-- **Issue**: `getDb()` is called repeatedly, and the WAL mode is set on every call if `db` is null.
-- **Slop**: Minimal abstraction over raw SQL queries.
+- **Issue**: `install.sh` handles `.mcp.json` vs `settings.json` vs `CLAUDE.md`.
+- **Slop**: The logic for updating these files is spread out and uses multiple different methods (cat, node -e, grep).
+
+### 6. Missing Validation in Hooks
+
+- **Issue**: `orbit-session-start.sh` and `orbit-stop.sh` assume specific directory structures and database locations.
+- **Problem**: Lack of "Orbit not installed" checks can lead to silent failures or messy error output in Claude's context.
+
+## Changes Made (Refactor Phase)
+
+### 1. Centralized Utility Layer
+
+- **New File**: `scripts/orbit-utils.sh`.
+- **Logic**: Consolidates Docker checks, path resolution, and JSON parsing.
+- **Benefit**: Zero logic duplication across scripts. All scripts now source these utils.
+
+### 2. Standardized JSON Tooling
+
+- **Change**: Replaced all Python-based JSON parsing heredocs with `jq` (as primary) or a lightweight `node` fallback.
+- **Benefit**: Removed the dependency on Python and improved script performance.
+
+### 3. Robust Container Tracking
+
+- **Change**: Added `com.orbit.managed=true` and `com.orbit.type` labels to `docker-compose.yml`.
+- **Change**: Updated `dockerManager.ts` to filter containers by labels rather than brittle name-based matching.
+- **Benefit**: Prevents Orbit from interfering with other containers and vice-versa.
+
+### 4. Advanced Project Detection
+
+- **Change**: Enhanced `detect-project.sh` to support specific frameworks (Next.js, Remix, Django, FastAPI).
+- **Benefit**: Allows for more tailored environment management in future updates.
+
+### 5. Hook Robustness
+
+- **Change**: Refactored `SessionStart` and `Stop` hooks to use the centralized utility layer and improved error handling for unitialized projects.
+- **Benefit**: Smoother user experience in Claude Code CLI.
+
+## Phase 3: Strategic Pivot (Staging vs Prod)
+
+- **Finding**: Production deployment is complex and out of scope for a general-purpose environment manager. Users prefer Orbit to focus on environment fidelity.
+- **Action**: Removed `orbit_prod` and `orbit-deploy.sh`.
+- **Enhancement**: Refocused `Staging` as a high-fidelity production-mimic (using `NODE_ENV=production` and build-time recreates).
+- **Enhancement**: Refocused `Test` as an isolated sandbox environment.

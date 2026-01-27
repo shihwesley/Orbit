@@ -8,38 +8,24 @@ PROJECT_PATH="${1:-.}"
 PROJECT_TYPE="${2:-unknown}"
 ORBIT_ROOT="$HOME/.orbit"
 
+# Source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/orbit-utils.sh"
+
 # Resolve absolute path
-PROJECT_PATH="$(cd "$PROJECT_PATH" && pwd)"
+PROJECT_PATH=$(get_abs_path "$PROJECT_PATH")
 PROJECT_NAME="$(basename "$PROJECT_PATH")"
 
 # Ensure global orbit exists
-if [ ! -d "$ORBIT_ROOT" ]; then
-    echo "ERROR: ~/.orbit not found. Run install.sh first." >&2
-    exit 1
-fi
+[ ! -d "$ORBIT_ROOT" ] && error "~/.orbit not found. Run install.sh first."
 
 # Set defaults based on type
 case "$PROJECT_TYPE" in
-    node)
-        TEST_CMD="npm test"
-        BUILD_CMD="npm run build"
-        ;;
-    python)
-        TEST_CMD="pytest"
-        BUILD_CMD="pip install -e ."
-        ;;
-    go)
-        TEST_CMD="go test ./..."
-        BUILD_CMD="go build"
-        ;;
-    rust)
-        TEST_CMD="cargo test"
-        BUILD_CMD="cargo build --release"
-        ;;
-    *)
-        TEST_CMD=""
-        BUILD_CMD=""
-        ;;
+    node)   TEST_CMD="npm test"; BUILD_CMD="npm run build" ;;
+    python) TEST_CMD="pytest"; BUILD_CMD="pip install -e ." ;;
+    go)     TEST_CMD="go test ./..."; BUILD_CMD="go build" ;;
+    rust)   TEST_CMD="cargo test"; BUILD_CMD="cargo build --release" ;;
+    *)      TEST_CMD=""; BUILD_CMD="" ;;
 esac
 
 # Create .orbit directory in project
@@ -62,6 +48,7 @@ echo "Created $PROJECT_PATH/.orbit/config.json"
 REGISTRY="$ORBIT_ROOT/registry.json"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+echo "Updating registry.json..."
 if command -v jq &>/dev/null; then
     # Use jq if available
     jq --arg path "$PROJECT_PATH" \
@@ -70,65 +57,51 @@ if command -v jq &>/dev/null; then
        '.projects[$path] = {"type": $type, "registered": $ts, "lastActivity": $ts}' \
        "$REGISTRY" > "$REGISTRY.tmp" && mv "$REGISTRY.tmp" "$REGISTRY"
 else
-    # Fallback: simple append (less robust)
-    echo "WARNING: jq not found, registry update may be imperfect"
-    # Read existing, manually insert
-    python3 << PYEOF
-import json
-with open("$REGISTRY", "r") as f:
-    data = json.load(f)
-data["projects"]["$PROJECT_PATH"] = {
-    "type": "$PROJECT_TYPE",
-    "registered": "$TIMESTAMP",
-    "lastActivity": "$TIMESTAMP"
-}
-with open("$REGISTRY", "w") as f:
-    json.dump(data, f, indent=2)
-PYEOF
+    # Better Node fallback than the previous Python one
+    node -e "
+        const fs = require('fs');
+        const data = JSON.parse(fs.readFileSync('$REGISTRY', 'utf8'));
+        data.projects['$PROJECT_PATH'] = {
+            type: '$PROJECT_TYPE',
+            registered: '$TIMESTAMP',
+            lastActivity: '$TIMESTAMP'
+        };
+        fs.writeFileSync('$REGISTRY', JSON.stringify(data, null, 2));
+    "
 fi
-
-echo "Updated registry.json"
 
 # Log to audit database
-if [ -f "$ORBIT_ROOT/state.db" ]; then
-    sqlite3 "$ORBIT_ROOT/state.db" << SQL
-INSERT INTO audit_log (project, command, environment, success)
-VALUES ('$PROJECT_PATH', 'init', 'dev', 1);
-
-INSERT OR REPLACE INTO project_state (project, current_env, last_activity)
-VALUES ('$PROJECT_PATH', 'dev', datetime('now'));
-SQL
-    echo "Updated state.db"
-fi
+log_audit "$PROJECT_PATH" "init" "dev" 1
 
 # Detect workspace
-WORKSPACE_INFO=$("$ORBIT_ROOT/scripts/detect-workspace.sh" "$PROJECT_PATH" 2>/dev/null || echo "none|")
+WORKSPACE_INFO=$("$SCRIPT_DIR/detect-workspace.sh" "$PROJECT_PATH" 2>/dev/null || echo "none|")
 WORKSPACE_TYPE=$(echo "$WORKSPACE_INFO" | cut -d'|' -f1)
 WORKSPACE_MEMBERS=$(echo "$WORKSPACE_INFO" | cut -d'|' -f2)
 
 if [ "$WORKSPACE_TYPE" != "none" ] && [ -n "$WORKSPACE_MEMBERS" ]; then
-    # Update config with workspace info
-    python3 << PYEOF
-import json
-with open("$PROJECT_PATH/.orbit/config.json", "r") as f:
-    config = json.load(f)
-config["workspace"] = {
-    "type": "$WORKSPACE_TYPE",
-    "members": "$WORKSPACE_MEMBERS".split(",")
-}
-with open("$PROJECT_PATH/.orbit/config.json", "w") as f:
-    json.dump(config, f, indent=2)
-PYEOF
-    echo "Detected workspace: $WORKSPACE_TYPE with ${WORKSPACE_MEMBERS//,/, }"
+    # Update config with workspace info using Node
+    node -e "
+        const fs = require('fs');
+        const config = JSON.parse(fs.readFileSync('$PROJECT_PATH/.orbit/config.json', 'utf8'));
+        config.workspace = {
+            type: '$WORKSPACE_TYPE',
+            members: '$WORKSPACE_MEMBERS'.split(',')
+        };
+        fs.writeFileSync('$PROJECT_PATH/.orbit/config.json', JSON.stringify(config, null, 2));
+    "
+    echo "Detected workspace: $WORKSPACE_TYPE"
 fi
 
 # Run parity check
-PARITY=$("$ORBIT_ROOT/scripts/check-parity.sh" "$PROJECT_PATH" 2>/dev/null || echo '{"status":"skip"}')
-PARITY_STATUS=$(echo "$PARITY" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','ok'))" 2>/dev/null || echo "ok")
+PARITY=$("$SCRIPT_DIR/check-parity.sh" "$PROJECT_PATH" 2>/dev/null || echo '{"status":"skip"}')
+PARITY_STATUS=$(echo "$PARITY" | node -e "
+    const data = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+    console.log(data.status || 'ok');
+" 2>/dev/null || echo "ok")
 
 if [ "$PARITY_STATUS" = "warning" ]; then
     echo ""
-    echo "⚠️  Version parity warning detected. Run /orbit check for details."
+    echo "⚠️  Version parity warning detected. Run /orbit status for details."
 fi
 
 echo ""

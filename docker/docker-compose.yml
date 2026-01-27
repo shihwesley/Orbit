@@ -21,6 +21,9 @@ services:
   # ===================
 
   test-node:
+    labels:
+      - "com.orbit.managed=true"
+      - "com.orbit.type=test"
     build:
       context: ${PROJECT_PATH:-.}
       dockerfile: ${ORBIT_ROOT:-~/.orbit}/docker/node.dockerfile
@@ -36,6 +39,9 @@ services:
     working_dir: /app
 
   test-python:
+    labels:
+      - "com.orbit.managed=true"
+      - "com.orbit.type=test"
     build:
       context: ${PROJECT_PATH:-.}
       dockerfile: ${ORBIT_ROOT:-~/.orbit}/docker/python.dockerfile
@@ -50,6 +56,9 @@ services:
     working_dir: /app
 
   test-go:
+    labels:
+      - "com.orbit.managed=true"
+      - "com.orbit.type=test"
     build:
       context: ${PROJECT_PATH:-.}
       dockerfile: ${ORBIT_ROOT:-~/.orbit}/docker/go.dockerfile
@@ -64,6 +73,9 @@ services:
     working_dir: /app
 
   test-rust:
+    labels:
+      - "com.orbit.managed=true"
+      - "com.orbit.type=test"
     build:
       context: ${PROJECT_PATH:-.}
       dockerfile: ${ORBIT_ROOT:-~/.orbit}/docker/rust.dockerfile
@@ -81,6 +93,9 @@ services:
   # ===================
 
   postgres:
+    labels:
+      - "com.orbit.managed=true"
+      - "com.orbit.type=sidecar"
     image: postgres:15-alpine
     profiles: ["sidecar-postgres"]
     environment:
@@ -98,6 +113,9 @@ services:
       retries: 5
 
   redis:
+    labels:
+      - "com.orbit.managed=true"
+      - "com.orbit.type=sidecar"
     image: redis:7-alpine
     profiles: ["sidecar-redis"]
     ports:
@@ -109,6 +127,9 @@ services:
       retries: 5
 
   mysql:
+    labels:
+      - "com.orbit.managed=true"
+      - "com.orbit.type=sidecar"
     image: mysql:8
     profiles: ["sidecar-mysql"]
     environment:
@@ -127,6 +148,9 @@ services:
       retries: 5
 
   mongodb:
+    labels:
+      - "com.orbit.managed=true"
+      - "com.orbit.type=sidecar"
     image: mongo:7
     profiles: ["sidecar-mongodb"]
     environment:
@@ -138,6 +162,9 @@ services:
       - mongodb_data:/data/db
 
   rabbitmq:
+    labels:
+      - "com.orbit.managed=true"
+      - "com.orbit.type=sidecar"
     image: rabbitmq:3-management-alpine
     profiles: ["sidecar-rabbitmq"]
     ports:
@@ -148,6 +175,9 @@ services:
       RABBITMQ_DEFAULT_PASS: orbit_test
 
   localstack:
+    labels:
+      - "com.orbit.managed=true"
+      - "com.orbit.type=sidecar"
     image: localstack/localstack:latest
     profiles: ["sidecar-aws"]
     ports:

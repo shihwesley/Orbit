@@ -7,19 +7,16 @@
 SESSION_INFO=$(cat)
 PROJECT=$(echo "$SESSION_INFO" | jq -r '.cwd // empty' 2>/dev/null)
 
+# Source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOME/.orbit/scripts/orbit-utils.sh"
+
 # Exit if no project or not an Orbit project
 [ -z "$PROJECT" ] && exit 0
 [ ! -f "$PROJECT/.orbit/config.json" ] && exit 0
 
-ORBIT_ROOT="$HOME/.orbit"
-DB_PATH="$ORBIT_ROOT/state.db"
-
 # Get current environment from database
-if [ -f "$DB_PATH" ]; then
-    ENV=$(sqlite3 "$DB_PATH" "SELECT current_env FROM project_state WHERE project='$PROJECT'" 2>/dev/null)
-fi
-
-# Default to dev if not found
+ENV=$(sqlite3 "$DB_PATH" "SELECT current_env FROM project_state WHERE project='$PROJECT'" 2>/dev/null)
 ENV="${ENV:-dev}"
 
 # Output status (will appear in Claude's context)

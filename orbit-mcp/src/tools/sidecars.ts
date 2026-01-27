@@ -36,10 +36,11 @@ export async function manageSidecars(input: SidecarsInput): Promise<SidecarsResu
   // Get currently running sidecars asynchronously
   const containers = await getRunningContainers();
   const runningSidecars = containers
-    .filter(c => c.name.includes('sidecar'))
+    .filter(c => c.labels['com.orbit.type'] === 'sidecar')
     .map(c => {
-      const match = c.name.match(/sidecar-(\w+)/);
-      return match ? match[1] : c.name;
+      // Find the name from the image or name if label missing (shouldn't happen now)
+      const match = c.name.match(/sidecar-(\w+)/) || c.name.match(/orbit-(\w+)/);
+      return match ? match[1] : c.name.replace('orbit-', '');
     });
 
   switch (input.action) {

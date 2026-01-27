@@ -8,11 +8,13 @@ set -e
 PROJECT_PATH="${1:-.}"
 ORBIT_ROOT="$HOME/.orbit"
 
+# Source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/orbit-utils.sh"
+
 # Get expected versions from global config
-get_expected_version() {
-    local tool="$1"
-    python3 -c "import json; print(json.load(open('$ORBIT_ROOT/config.json')).get('defaults', {}).get('$tool', ''))" 2>/dev/null || echo ""
-}
+GLOBAL_CONFIG="$ORBIT_ROOT/config.json"
+PROJECT_CONFIG="$PROJECT_PATH/.orbit/config.json"
 
 # Get local version
 get_local_version() {
@@ -36,31 +38,14 @@ get_local_version() {
     esac
 }
 
-# Check if project has custom version requirement
-get_project_version() {
-    local tool="$1"
-    local project_config="$PROJECT_PATH/.orbit/config.json"
-
-    if [ -f "$project_config" ]; then
-        python3 -c "import json; print(json.load(open('$project_config')).get('versions', {}).get('$tool', ''))" 2>/dev/null || echo ""
-    else
-        echo ""
-    fi
-}
-
-# Detect project type
-PROJECT_TYPE=""
-if [ -f "$PROJECT_PATH/.orbit/config.json" ]; then
-    PROJECT_TYPE=$(python3 -c "import json; print(json.load(open('$PROJECT_PATH/.orbit/config.json')).get('type', ''))" 2>/dev/null || echo "")
-fi
-
-# Determine which tool to check based on project type
+# Detect tool based on project type
+PROJECT_TYPE=$(get_json_val "$PROJECT_CONFIG" ".type")
 TOOL=""
 case "$PROJECT_TYPE" in
-    node) TOOL="node" ;;
+    node)   TOOL="node" ;;
     python) TOOL="python" ;;
-    go) TOOL="go" ;;
-    rust) TOOL="rust" ;;
+    go)     TOOL="go" ;;
+    rust)   TOOL="rust" ;;
 esac
 
 if [ -z "$TOOL" ]; then
@@ -70,27 +55,25 @@ fi
 
 # Get versions
 LOCAL_VERSION=$(get_local_version "$TOOL")
-PROJECT_VERSION=$(get_project_version "$TOOL")
-EXPECTED_VERSION=$(get_expected_version "$TOOL")
+PROJECT_VERSION=$(get_json_val "$PROJECT_CONFIG" ".versions.$TOOL")
+EXPECTED_VERSION=$(get_json_val "$GLOBAL_CONFIG" ".defaults.$TOOL")
 
-# Use project version if set, otherwise use global default
 REQUIRED_VERSION="${PROJECT_VERSION:-$EXPECTED_VERSION}"
 
-# Compare versions
-WARNINGS="[]"
+# Compare
 STATUS="ok"
+WARNINGS="[]"
 
 if [ -z "$LOCAL_VERSION" ]; then
     STATUS="warning"
-    WARNINGS=$(python3 -c "import json; print(json.dumps([{'tool': '$TOOL', 'message': '$TOOL not installed', 'local': None, 'required': '$REQUIRED_VERSION'}]))")
+    WARNINGS="[{\"tool\": \"$TOOL\", \"message\": \"$TOOL not installed\", \"local\": null, \"required\": \"$REQUIRED_VERSION\"}]"
 elif [ -n "$REQUIRED_VERSION" ]; then
-    # Simple major version comparison
     LOCAL_MAJOR=$(echo "$LOCAL_VERSION" | cut -d. -f1)
     REQUIRED_MAJOR=$(echo "$REQUIRED_VERSION" | cut -d. -f1)
 
     if [ "$LOCAL_MAJOR" != "$REQUIRED_MAJOR" ]; then
         STATUS="warning"
-        WARNINGS=$(python3 -c "import json; print(json.dumps([{'tool': '$TOOL', 'message': 'Version mismatch', 'local': '$LOCAL_VERSION', 'required': '$REQUIRED_VERSION'}]))")
+        WARNINGS="[{\"tool\": \"$TOOL\", \"message\": \"Version mismatch\", \"local\": \"$LOCAL_VERSION\", \"required\": \"$REQUIRED_VERSION\"}]"
     fi
 fi
 

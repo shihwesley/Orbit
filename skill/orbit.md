@@ -18,7 +18,6 @@ The Orbit MCP server provides these tools. **Prefer MCP tools when available**:
 | `orbit_get_state` | Query projects, audit log, registry |
 | `orbit_sidecars` | List/start/stop sidecars |
 | `orbit_stop_all` | Stop all Orbit containers |
-| `orbit_prod` | Deploy to production (Vercel/Railway) |
 
 ## Command Routing
 
@@ -26,15 +25,16 @@ Parse user input:
 
 - `/orbit` or `/orbit status` → [Status](#orbit-status)
 - `/orbit init` → [Init](#orbit-init)
-- `/orbit test [--fresh]` → [Test](#orbit-test---fresh)
+- `/orbit test [--fresh]` → [Test Suite](#test-suite)
 - `/orbit staging` → [Staging](#orbit-staging)
-- `/orbit prod` → [Prod](#orbit-prod)
 - `/orbit use <env>` → [Use](#orbit-use-env)
 - `/orbit sidecars [action] [name]` → [Sidecars](#orbit-sidecars)
 - `/orbit logs [limit]` → [Logs](#orbit-logs)
 - `/orbit stop` → [Stop All](#orbit-stop)
 - `/orbit check` → [Parity Check](#orbit-check)
 - `/orbit templates` → [Templates](#orbit-templates)
+
+---
 
 ---
 
@@ -130,7 +130,7 @@ Edit .orbit/config.json to add sidecars if needed.
 
 ---
 
-## /orbit test [--fresh]
+## Test Suite
 
 Run tests in fresh Docker container.
 
@@ -149,10 +149,11 @@ Run tests in fresh Docker container.
 
 1. Checks Docker available
 2. Starts declared sidecars
-3. Builds Docker image (--fresh skips cache)
-4. Runs tests in container
-5. Logs result to audit
-6. Reports pass/fail with duration
+3. Sets `NODE_ENV=test` and `CI=true`
+4. Builds Docker image in isolation
+5. Runs tests in container
+6. Logs result to audit
+7. Reports pass/fail with duration
 
 ### If Docker unavailable
 
@@ -198,78 +199,17 @@ sqlite3 ~/.orbit/state.db "UPDATE project_state SET current_env = 'staging', las
 ### Output
 
 ```
-Switched to staging environment
+Switched to staging environment (Production-Mimic)
 Sidecars started: <list>
+NODE_ENV: production
+CI: true
 ```
 
 ---
 
-## /orbit prod
+### Result
 
-Deploy to production. **Requires confirmation.**
-
-### With MCP (preferred)
-
-```
-Call orbit_prod with:
-  confirm: true
-  project_path: <cwd>
-```
-
-### Without MCP
-
-#### Step 1: Check readiness
-
-- Project must be initialized
-- Should have passing tests (`/orbit test`)
-- Check `.orbit/config.json` for prod configuration
-
-### Step 2: Confirm with user
-
-Use AskUserQuestion:
-
-```
-question: "Deploy to production?"
-options:
-  - "Yes, deploy now"
-  - "No, cancel"
-```
-
-### Step 3: Deploy
-
-Read prod config from `.orbit/config.json`:
-
-```json
-{
-  "prod": {
-    "provider": "vercel",
-    "method": "cli"
-  }
-}
-```
-
-**If method = "cli":**
-
-```bash
-# Vercel
-vercel deploy --prod
-
-# Railway
-railway up
-```
-
-**If method = "github-actions":**
-
-```
-Push to trigger deployment workflow.
-Ensure .github/workflows/<provider>-deploy.yml exists.
-```
-
-### Step 4: Log result
-
-```bash
-sqlite3 ~/.orbit/state.db "INSERT INTO audit_log (project, command, environment, success) VALUES ('$(pwd)', 'deploy', 'prod', 1);"
-```
+Orbit no longer manages production deployments directly. Staging is the final high-fidelity local validation step.
 
 ---
 

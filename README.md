@@ -11,36 +11,35 @@ Orbit Uses a **hybrid architecture**:
 
 - **Ambient Switching**: Automatically move between local dev and Docker-based test/staging environments based on your current goal.
 - **Lazy Sidecars**: Declare dependencies like PostgreSQL or Redis in `.orbit/config.json`, and Orbit starts them only when needed.
-- **Fresh-Room Testing**: Run unit tests in disposable, fresh Docker containers to avoid "works on my machine" syndrome.
-- **Self-Enforcement**: Injects a protocol into `~/.claude/CLAUDE.md` so that AI agents automatically follow your environment rules.
+- **Fresh-Room Testing**: Run test suites in disposable, fresh Docker containers to ensure isolated verification.
+- **High-Fidelity Staging**: Local production-mimic containers for final verification before manual deployment.
 
 ## 🛠 Prerequisites
 
 - **macOS** (Optimized for Mac systems)
 - **Node.js**: >= 20.0.0
 - **Docker**: Required for `test` and `staging` environments.
-- **Claude Code**: The primary interface for Orbit.
+- **Claude Code CLI**: The primary interface for Orbit.
 
 ## 📦 Installation
 
 To install Orbit and its MCP server:
 
-1. **Clone the repository** (if you haven't already):
+1. **Install globally via NPM**:
 
    ```bash
-   git clone https://github.com/shihwesley/Orbit.git ~/Source/Orbit
-   cd ~/Source/Orbit
+   npm install -g @orbit/core
    ```
 
-2. **Run the installation script**:
+2. **Run the setup command**:
 
    ```bash
-   bash scripts/install.sh
+   orbit setup
    ```
 
    This will create `~/.orbit/`, initialize the database, install the MCP server, and register it in `~/.claude.json`.
 
-3. **Restart Claude Code** to load the MCP server, then run `/orbit status` to verify.
+3. **Restart Claude Code** to load the MCP server, then run `orbit status` to verify.
 
 ## 🏁 Getting Started
 
@@ -62,40 +61,23 @@ Once installed, onboard any project in `~/`:
 
 ## 🕹 Usage Examples
 
-Orbit is designed to be ambient, but you can explicitly control it via the following commands:
+Orbit is designed to be ambient, but you can explicitly control it via these **integrated slash commands**:
 
 ### Check Status
 
-```bash
-/orbit status
-```
+`/orbit status`
 
-Displays current environment, running containers, and latest audit logs.
+### Switch Environments
 
-### Run Fresh Tests
+`/orbit switch <env>`
 
-```bash
-/orbit test
-```
+- `dev`: Local development.
+- `test`: Isolated test suite.
+- `staging`: Production-mimic container.
 
-Starts a fresh Docker container, installs dependencies, and runs your test suite. Use `--fresh` to skip the Docker cache.
+### Manage Sidecars
 
-### Manual Environment Overrides
-
-If Orbit doesn't switch automatically, you can force it:
-
-```bash
-/orbit use staging  # Switch to staging (Docker-based)
-/orbit use dev      # Switch back to local development
-```
-
-While you can trigger this manually:
-
-```bash
-/orbit prod
-```
-
-Orbit's ambient logic will **automatically** call this hook when it detects a deployment-related task in your `TASK.md`, `PLAN.md`, or current code activity. It will push to production (e.g., Vercel or Railway) after a mandatory confirmation prompt.
+`/orbit sidecars [list|start|stop <name>]`
 
 ## ⚓️ Sidecar Management
 
@@ -113,17 +95,16 @@ Orbit will lazy-load these containers whenever you are in the `test` or `staging
 
 To update the system and the MCP server:
 
-1. **Pull the latest changes**:
+1. **Update the global package**:
 
     ```bash
-    cd ~/Orbit
-    git pull
+    npm install -g @shihwesley/orbit@latest
     ```
 
-2. **Re-run the installation script** to apply updates:
+2. **Re-run setup** to apply configuration updates:
 
     ```bash
-    bash scripts/install.sh
+    orbit setup
     ```
 
 3. **Restart your Claude session** to re-initialize the MCP server.

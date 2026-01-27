@@ -1,0 +1,52 @@
+{
+    "name": "@shihwesley/orbit",
+    "version": "1.1.0",
+    "description": "Orbit - Ambient environment management for Claude Code",
+    "type": "module",
+    "main": "index.js",
+    "publishConfig": {
+        "access": "public"
+    },
+    "bin": {
+        "orbit": "bin/orbit.js",
+        "orbit-mcp": "orbit-mcp/dist/index.js"
+    },
+    "files": [
+        "bin/",
+        "orbit-mcp/dist/",
+        "scripts/",
+        "docker/",
+        "config/",
+        "templates/",
+        "skill/",
+        "hooks/"
+    ],
+    "scripts": {
+        "build": "cd orbit-mcp && npm install && npm run build",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "mcp",
+        "claude",
+        "environment",
+        "docker",
+        "devops"
+    ],
+    "author": "Shih Wesley",
+    "license": "MIT",
+    "dependencies": {
+        "commander": "^12.1.0",
+        "chalk": "^5.3.0",
+        "prompts": "^2.4.2",
+        "execa": "^9.3.0",
+        "better-sqlite3": "^11.0.0",
+        "zod": "^3.23.0"
+    },
+    "devDependencies": {
+        "@types/node": "^22.0.0",
+        "@types/prompts": "^2.4.9"
+    },
+    "engines": {
+        "node": ">=20"
+    }
+}
