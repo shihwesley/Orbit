@@ -18,21 +18,16 @@ import { sidecarsSchema, manageSidecars, AVAILABLE_SIDECARS } from './tools/side
 import { stopAllSchema, stopAll } from './tools/stopAll.js';
 import { closeDb } from './stateDb.js';
 
-// Create MCP server
-const server = new Server(
-  {
-    name: 'orbit-mcp',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
-  }
-);
+// Tool Registry Type
+type ToolHandler = {
+  name: string;
+  description: string;
+  inputSchema: any;
+  handler: (args: any) => Promise<any>;
+};
 
-// Tool definitions
-const TOOLS = [
+// Registered tools
+const TOOL_REGISTRY: ToolHandler[] = [
   {
     name: 'orbit_status',
     description: 'Get current environment status for a project. Shows project config, current environment, running sidecars, Docker status, and recent activity.',
@@ -45,6 +40,7 @@ const TOOLS = [
         },
       },
     },
+    handler: async (args) => getStatus(statusSchema.parse(args || {})),
   },
   {
     name: 'orbit_switch_env',
@@ -64,6 +60,7 @@ const TOOLS = [
       },
       required: ['environment'],
     },
+    handler: async (args) => switchEnv(switchEnvSchema.parse(args)),
   },
   {
     name: 'orbit_get_state',
@@ -87,6 +84,7 @@ const TOOLS = [
       },
       required: ['query_type'],
     },
+    handler: async (args) => getState(getStateSchema.parse(args)),
   },
   {
     name: 'orbit_sidecars',
@@ -110,6 +108,7 @@ const TOOLS = [
       },
       required: ['action'],
     },
+    handler: async (args) => manageSidecars(sidecarsSchema.parse(args)),
   },
   {
     name: 'orbit_stop_all',
@@ -123,45 +122,45 @@ const TOOLS = [
         },
       },
     },
+    handler: async (args) => stopAll(stopAllSchema.parse(args || {})),
   },
 ];
 
+// Create MCP server
+const server = new Server(
+  {
+    name: 'orbit-mcp',
+    version: '1.1.0', // Increased version for refactor
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
+  }
+);
+
 // List tools handler
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return { tools: TOOLS };
+  return {
+    tools: TOOL_REGISTRY.map(({ name, description, inputSchema }) => ({
+      name,
+      description,
+      inputSchema,
+    })),
+  };
 });
 
 // Call tool handler
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
+  const tool = TOOL_REGISTRY.find((t) => t.name === name);
+
+  if (!tool) {
+    throw new Error(`Unknown tool: ${name}`);
+  }
 
   try {
-    let result: unknown;
-
-    switch (name) {
-      case 'orbit_status':
-        result = getStatus(statusSchema.parse(args || {}));
-        break;
-
-      case 'orbit_switch_env':
-        result = switchEnv(switchEnvSchema.parse(args));
-        break;
-
-      case 'orbit_get_state':
-        result = getState(getStateSchema.parse(args));
-        break;
-
-      case 'orbit_sidecars':
-        result = manageSidecars(sidecarsSchema.parse(args));
-        break;
-
-      case 'orbit_stop_all':
-        result = stopAll(stopAllSchema.parse(args || {}));
-        break;
-
-      default:
-        throw new Error(`Unknown tool: ${name}`);
-    }
+    const result = await tool.handler(args);
 
     return {
       content: [
@@ -186,15 +185,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 // Cleanup on exit
-process.on('SIGINT', () => {
+const cleanup = () => {
   closeDb();
   process.exit(0);
-});
+};
 
-process.on('SIGTERM', () => {
-  closeDb();
-  process.exit(0);
-});
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
 
 // Start server
 async function main() {

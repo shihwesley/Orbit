@@ -3,13 +3,12 @@
  */
 
 import { z } from 'zod';
-import { getProjectState, getRecentAuditLog, getAllProjectStates } from '../stateDb.js';
+import { getProjectState, getRecentAuditLog } from '../stateDb.js';
 import { checkDocker, getRunningContainers } from '../dockerManager.js';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readProjectConfig } from '../utils.js';
 
 export const statusSchema = z.object({
-  project_path: z.string().optional().describe('Project path (defaults to cwd)'),
+  project_path: z.string().optional().describe('Project path (defaults to current working directory)'),
 });
 
 export type StatusInput = z.infer<typeof statusSchema>;
@@ -44,32 +43,22 @@ export interface StatusResult {
   }>;
 }
 
-export function getStatus(input: StatusInput): StatusResult {
+export async function getStatus(input: StatusInput): Promise<StatusResult> {
   const projectPath = input.project_path || process.cwd();
   const projectName = projectPath.split('/').pop() || 'unknown';
-  const orbitConfigPath = join(projectPath, '.orbit', 'config.json');
 
-  // Check if project is initialized
-  const initialized = existsSync(orbitConfigPath);
-  let config: Record<string, unknown> | null = null;
-  let projectType: string | null = null;
-
-  if (initialized) {
-    try {
-      config = JSON.parse(readFileSync(orbitConfigPath, 'utf-8'));
-      projectType = (config?.type as string) || null;
-    } catch {
-      // Ignore parse errors
-    }
-  }
+  // Read project config asynchronously
+  const config = await readProjectConfig(projectPath);
+  const initialized = !!config;
+  const projectType = (config?.type as string) || null;
 
   // Get state from database
   const state = getProjectState(projectPath);
   const auditLog = getRecentAuditLog(projectPath, 5);
 
-  // Get Docker status
-  const dockerStatus = checkDocker();
-  const containers = dockerStatus.running ? getRunningContainers() : [];
+  // Get Docker status asynchronously
+  const dockerStatus = await checkDocker();
+  const containers = dockerStatus.running ? await getRunningContainers() : [];
 
   // Parse sidecars
   let sidecarsRunning: string[] = [];

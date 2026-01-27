@@ -1,14 +1,6 @@
-/**
- * SQLite state database operations
- */
-
 import Database from 'better-sqlite3';
-import { homedir } from 'os';
-import { join } from 'path';
 import { existsSync } from 'fs';
-
-const ORBIT_ROOT = join(homedir(), '.orbit');
-const DB_PATH = join(ORBIT_ROOT, 'state.db');
+import { DB_PATH } from './config.js';
 
 let db: Database.Database | null = null;
 

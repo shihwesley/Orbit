@@ -18,7 +18,7 @@ export interface StopAllResult {
   message: string;
 }
 
-export function stopAll(input: StopAllInput): StopAllResult {
+export async function stopAll(input: StopAllInput): Promise<StopAllResult> {
   if (!input.confirm) {
     return {
       success: false,
@@ -27,7 +27,7 @@ export function stopAll(input: StopAllInput): StopAllResult {
     };
   }
 
-  const dockerStatus = checkDocker();
+  const dockerStatus = await checkDocker();
   if (!dockerStatus.running) {
     return {
       success: true,
@@ -37,10 +37,10 @@ export function stopAll(input: StopAllInput): StopAllResult {
   }
 
   // Count containers before stopping
-  const containersBefore = getRunningContainers().length;
+  const containersBefore = (await getRunningContainers()).length;
 
   // Stop all
-  stopAllOrbitContainers();
+  await stopAllOrbitContainers();
 
   // Clear sidecars from all project states
   const projects = getAllProjectStates();

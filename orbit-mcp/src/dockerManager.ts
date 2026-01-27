@@ -1,13 +1,12 @@
 /**
- * Docker container management
+ * Docker container management (Asynchronous)
  */
 
-import { execSync, spawn } from 'child_process';
-import { homedir } from 'os';
-import { join } from 'path';
+import { exec as execCallback } from 'child_process';
+import { promisify } from 'util';
+import { COMPOSE_FILE, ORBIT_ROOT } from './config.js';
 
-const ORBIT_ROOT = join(homedir(), '.orbit');
-const COMPOSE_FILE = join(ORBIT_ROOT, 'docker', 'docker-compose.yml');
+const exec = promisify(execCallback);
 
 export interface DockerStatus {
   installed: boolean;
@@ -15,11 +14,12 @@ export interface DockerStatus {
   version: string | null;
 }
 
-export function checkDocker(): DockerStatus {
+export async function checkDocker(): Promise<DockerStatus> {
   try {
-    const version = execSync('docker --version', { encoding: 'utf-8' }).trim();
+    const { stdout } = await exec('docker --version');
+    const version = stdout.trim();
     try {
-      execSync('docker info', { stdio: 'ignore' });
+      await exec('docker info');
       return { installed: true, running: true, version };
     } catch {
       return { installed: true, running: false, version };
@@ -29,8 +29,8 @@ export function checkDocker(): DockerStatus {
   }
 }
 
-export function requireDocker(): void {
-  const status = checkDocker();
+export async function requireDocker(): Promise<void> {
+  const status = await checkDocker();
   if (!status.installed) {
     throw new Error('Docker is not installed. Install Docker Desktop or docker.io');
   }
@@ -47,13 +47,12 @@ export interface RunningContainer {
   ports: string;
 }
 
-export function getRunningContainers(): RunningContainer[] {
+export async function getRunningContainers(): Promise<RunningContainer[]> {
   try {
-    const output = execSync(
-      'docker ps --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}"',
-      { encoding: 'utf-8' }
+    const { stdout } = await exec(
+      'docker ps --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}"'
     );
-    return output
+    return stdout
       .trim()
       .split('\n')
       .filter(line => line.includes('orbit'))
@@ -66,33 +65,25 @@ export function getRunningContainers(): RunningContainer[] {
   }
 }
 
-export function startSidecar(sidecar: string): void {
-  requireDocker();
-  execSync(
-    `docker compose -f "${COMPOSE_FILE}" --profile sidecar-${sidecar} up -d`,
-    { stdio: 'inherit' }
-  );
+export async function startSidecar(sidecar: string): Promise<void> {
+  await requireDocker();
+  await exec(`docker compose -f "${COMPOSE_FILE}" --profile sidecar-${sidecar} up -d`);
 }
 
-export function stopSidecar(sidecar: string): void {
-  requireDocker();
-  execSync(
-    `docker compose -f "${COMPOSE_FILE}" --profile sidecar-${sidecar} down`,
-    { stdio: 'inherit' }
-  );
+export async function stopSidecar(sidecar: string): Promise<void> {
+  await requireDocker();
+  await exec(`docker compose -f "${COMPOSE_FILE}" --profile sidecar-${sidecar} down`);
 }
 
-export function startSidecars(sidecars: string[]): void {
-  for (const sidecar of sidecars) {
-    startSidecar(sidecar);
-  }
+export async function startSidecars(sidecars: string[]): Promise<void> {
+  // Start in parallel for better performance
+  await Promise.all(sidecars.map(sidecar => startSidecar(sidecar)));
 }
 
-export function stopAllOrbitContainers(): void {
-  requireDocker();
-  // Stop all compose services
+export async function stopAllOrbitContainers(): Promise<void> {
+  await requireDocker();
   try {
-    execSync(`docker compose -f "${COMPOSE_FILE}" down`, { stdio: 'inherit' });
+    await exec(`docker compose -f "${COMPOSE_FILE}" down`);
   } catch {
     // Ignore if nothing to stop
   }
@@ -109,9 +100,9 @@ export async function runTests(
   projectType: string,
   fresh = false
 ): Promise<TestResult> {
-  requireDocker();
+  await requireDocker();
 
-  const env = {
+  const envVars = {
     ...process.env,
     PROJECT_PATH: projectPath,
     ORBIT_ROOT,
@@ -120,25 +111,24 @@ export async function runTests(
 
   const buildArgs = fresh ? '--no-cache' : '';
   const startTime = Date.now();
-  let output = '';
 
   try {
     // Build
-    execSync(
+    await exec(
       `docker compose -f "${COMPOSE_FILE}" --profile ${projectType} build ${buildArgs}`,
-      { env, stdio: 'pipe', encoding: 'utf-8' }
+      { env: envVars }
     );
 
     // Run tests
-    output = execSync(
+    const { stdout } = await exec(
       `docker compose -f "${COMPOSE_FILE}" --profile ${projectType} run --rm test-${projectType}`,
-      { env, stdio: 'pipe', encoding: 'utf-8' }
+      { env: envVars }
     );
 
     return {
       success: true,
       duration: Date.now() - startTime,
-      output,
+      output: stdout,
     };
   } catch (error) {
     return {

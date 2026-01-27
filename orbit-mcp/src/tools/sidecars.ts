@@ -30,11 +30,11 @@ export interface SidecarsResult {
   message: string;
 }
 
-export function manageSidecars(input: SidecarsInput): SidecarsResult {
+export async function manageSidecars(input: SidecarsInput): Promise<SidecarsResult> {
   const projectPath = input.project_path || process.cwd();
 
-  // Get currently running sidecars
-  const containers = getRunningContainers();
+  // Get currently running sidecars asynchronously
+  const containers = await getRunningContainers();
   const runningSidecars = containers
     .filter(c => c.name.includes('sidecar'))
     .map(c => {
@@ -59,8 +59,8 @@ export function manageSidecars(input: SidecarsInput): SidecarsResult {
       if (!valid) {
         throw new Error(`Unknown sidecar: ${input.sidecar}. Available: ${AVAILABLE_SIDECARS.map(s => s.name).join(', ')}`);
       }
-      requireDocker();
-      startSidecar(input.sidecar);
+      await requireDocker();
+      await startSidecar(input.sidecar);
 
       // Update state
       const state = getProjectState(projectPath);
@@ -82,8 +82,8 @@ export function manageSidecars(input: SidecarsInput): SidecarsResult {
       if (!input.sidecar) {
         throw new Error('Sidecar name required for stop action');
       }
-      requireDocker();
-      stopSidecar(input.sidecar);
+      await requireDocker();
+      await stopSidecar(input.sidecar);
 
       // Update state
       const state = getProjectState(projectPath);

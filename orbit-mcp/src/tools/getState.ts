@@ -3,15 +3,14 @@
  */
 
 import { z } from 'zod';
-import { getDb, getAllProjectStates, getRecentAuditLog } from '../stateDb.js';
-import { readFileSync, existsSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
+import { getAllProjectStates, getRecentAuditLog } from '../stateDb.js';
+import { promises as fs } from 'fs';
+import { REGISTRY_PATH, CONFIG_PATH, DEFAULT_LIMIT } from '../config.js';
 
 export const getStateSchema = z.object({
   query_type: z.enum(['projects', 'audit', 'registry', 'config']).describe('What to query'),
   project_path: z.string().optional().describe('Project path for audit query'),
-  limit: z.number().optional().default(20).describe('Limit for audit query'),
+  limit: z.number().optional().default(DEFAULT_LIMIT).describe('Limit for audit query'),
 });
 
 export type GetStateInput = z.infer<typeof getStateSchema>;
@@ -21,9 +20,7 @@ export interface GetStateResult {
   data: unknown;
 }
 
-export function getState(input: GetStateInput): GetStateResult {
-  const ORBIT_ROOT = join(homedir(), '.orbit');
-
+export async function getState(input: GetStateInput): Promise<GetStateResult> {
   switch (input.query_type) {
     case 'projects': {
       // Get all registered projects
@@ -58,22 +55,22 @@ export function getState(input: GetStateInput): GetStateResult {
 
     case 'registry': {
       // Get global registry
-      const registryPath = join(ORBIT_ROOT, 'registry.json');
-      if (!existsSync(registryPath)) {
+      try {
+        const content = await fs.readFile(REGISTRY_PATH, 'utf-8');
+        return { query_type: 'registry', data: JSON.parse(content) };
+      } catch {
         return { query_type: 'registry', data: { projects: {} } };
       }
-      const registry = JSON.parse(readFileSync(registryPath, 'utf-8'));
-      return { query_type: 'registry', data: registry };
     }
 
     case 'config': {
       // Get global config
-      const configPath = join(ORBIT_ROOT, 'config.json');
-      if (!existsSync(configPath)) {
+      try {
+        const content = await fs.readFile(CONFIG_PATH, 'utf-8');
+        return { query_type: 'config', data: JSON.parse(content) };
+      } catch {
         return { query_type: 'config', data: null };
       }
-      const config = JSON.parse(readFileSync(configPath, 'utf-8'));
-      return { query_type: 'config', data: config };
     }
 
     default:

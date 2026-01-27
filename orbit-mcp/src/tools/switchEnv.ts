@@ -5,8 +5,7 @@
 import { z } from 'zod';
 import { updateProjectState, logAudit, getProjectState, type Environment } from '../stateDb.js';
 import { startSidecars, stopAllOrbitContainers, requireDocker } from '../dockerManager.js';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readProjectConfig } from '../utils.js';
 
 export const switchEnvSchema = z.object({
   project_path: z.string().optional().describe('Project path (defaults to cwd)'),
@@ -23,21 +22,19 @@ export interface SwitchEnvResult {
   message: string;
 }
 
-export function switchEnv(input: SwitchEnvInput): SwitchEnvResult {
+export async function switchEnv(input: SwitchEnvInput): Promise<SwitchEnvResult> {
   const projectPath = input.project_path || process.cwd();
   const targetEnv = input.environment as Environment;
-  const orbitConfigPath = join(projectPath, '.orbit', 'config.json');
 
-  // Check project is initialized
-  if (!existsSync(orbitConfigPath)) {
+  // Read project config asynchronously
+  const config = await readProjectConfig(projectPath);
+  if (!config) {
     throw new Error(`Project not initialized at ${projectPath}. Run /orbit init first.`);
   }
 
-  // Read project config
-  const config = JSON.parse(readFileSync(orbitConfigPath, 'utf-8'));
   const sidecars: string[] = config.sidecars || [];
 
-  // Get previous state (might not exist)
+  // Get previous state
   let previousEnv: string | null = null;
   try {
     const state = getProjectState(projectPath);
@@ -46,23 +43,23 @@ export function switchEnv(input: SwitchEnvInput): SwitchEnvResult {
     // Ignore
   }
 
-  // Handle environment switch
+  // Handle environment switch asynchronously
   let sidecarsStarted: string[] = [];
 
   if (targetEnv === 'dev') {
     // Dev is local, stop any running containers
     try {
-      stopAllOrbitContainers();
+      await stopAllOrbitContainers();
     } catch {
       // Ignore if Docker not available
     }
   } else if (targetEnv === 'test' || targetEnv === 'staging') {
     // Test and staging need Docker
-    requireDocker();
+    await requireDocker();
 
     // Start sidecars if configured
     if (sidecars.length > 0) {
-      startSidecars(sidecars);
+      await startSidecars(sidecars);
       sidecarsStarted = sidecars;
     }
   }
