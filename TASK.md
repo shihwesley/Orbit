@@ -1,0 +1,27 @@
+# Orbit: Task List
+
+- [ ] Phase 1: Foundation Setup
+  - [ ] Create `~/Source/.orbit/` directory structure
+  - [ ] Initialize `config.json` with base defaults
+  - [ ] Create `state.db` SQLite schema
+  - [ ] Initialize empty `registry.json`
+- [ ] Phase 2: Docker Infrastructure
+  - [ ] Create language-specific Dockerfiles (Node, Python, Swift)
+  - [ ] Implement `docker-compose.yml` with sidecar profiles
+  - [ ] Write `detect-project.sh` logic
+- [ ] Phase 3: GitHub Actions Templates
+  - [ ] Create `ci.yml` and `release.yml` templates
+- [ ] Phase 4: Claude Code Skill (/orbit)
+  - [ ] Implement `/orbit` command logic in `~/.claude/commands/orbit.md`
+- [ ] Phase 5: System Polish & Parity
+  - [ ] Implement `/orbit check` (Doctor mode)
+  - [ ] Build version parity checks for Node/Python/Swift
+- [ ] Phase 6: Lifecycle Hooks & Sidecars
+  - [ ] Implement hook execution logic
+  - [ ] Integrate sidecar orchestration in `/orbit test`
+- [ ] Phase 7: Installation & Self-Enforcement
+  - [ ] Create `scripts/install.sh`
+  - [ ] Implement agent instruction injection logic (CLAUDE.md modification)
+- [ ] Phase 8: Cloud Infrastructure & Staging Mimicry
+  - [ ] Implement Provider templates (AWS/Vercel)
+  - [ ] Build Staging mimics (LocalStack integration)
