@@ -16,6 +16,7 @@ import { switchEnvSchema, switchEnv } from './tools/switchEnv.js';
 import { getStateSchema, getState } from './tools/getState.js';
 import { sidecarsSchema, manageSidecars, AVAILABLE_SIDECARS } from './tools/sidecars.js';
 import { stopAllSchema, stopAll } from './tools/stopAll.js';
+import { prodSchema, deployProd } from './tools/prod.js';
 import { closeDb } from './stateDb.js';
 
 // Tool Registry Type
@@ -123,6 +124,25 @@ const TOOL_REGISTRY: ToolHandler[] = [
       },
     },
     handler: async (args) => stopAll(stopAllSchema.parse(args || {})),
+  },
+  {
+    name: 'orbit_prod',
+    description: 'Deploy to production (Vercel or Railway). Requires prod config in .orbit/config.json.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_path: {
+          type: 'string',
+          description: 'Project path (defaults to cwd)',
+        },
+        confirm: {
+          type: 'boolean',
+          description: 'Confirm production deployment (required)',
+        },
+      },
+      required: ['confirm'],
+    },
+    handler: async (args) => deployProd(prodSchema.parse(args)),
   },
 ];
 

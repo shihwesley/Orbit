@@ -18,10 +18,12 @@ The Orbit MCP server provides these tools. **Prefer MCP tools when available**:
 | `orbit_get_state` | Query projects, audit log, registry |
 | `orbit_sidecars` | List/start/stop sidecars |
 | `orbit_stop_all` | Stop all Orbit containers |
+| `orbit_prod` | Deploy to production (Vercel/Railway) |
 
 ## Command Routing
 
 Parse user input:
+
 - `/orbit` or `/orbit status` → [Status](#orbit-status)
 - `/orbit init` → [Init](#orbit-init)
 - `/orbit test [--fresh]` → [Test](#orbit-test---fresh)
@@ -41,11 +43,13 @@ Parse user input:
 Show current environment state.
 
 ### With MCP (preferred)
+
 ```
 Call orbit_status with project_path = <cwd>
 ```
 
 ### Without MCP
+
 ```bash
 # Check initialization
 if [ ! -f ".orbit/config.json" ]; then
@@ -62,6 +66,7 @@ sqlite3 ~/.orbit/state.db "SELECT timestamp, command, success FROM audit_log WHE
 ```
 
 ### Output format
+
 ```
 Project: <name>
 Type: <node|python|go|rust>
@@ -80,14 +85,17 @@ Recent activity:
 Initialize Orbit for current project.
 
 ### Step 1: Detect type
+
 ```bash
 ~/.orbit/scripts/detect-project.sh .
 ```
+
 Returns `type|supported` (e.g., `node|yes`).
 
 ### Step 2: Confirm with user
 
 Use AskUserQuestion:
+
 ```
 question: "Detected project type: <type>. Initialize Orbit?"
 options:
@@ -96,18 +104,22 @@ options:
 ```
 
 If unsupported (`swift|no` or `xcode|no`):
+
 ```
 Orbit currently supports: Node.js, Python, Go, Rust
 Swift/Xcode support planned for future release.
 ```
+
 Stop here.
 
 ### Step 3: Initialize
+
 ```bash
 ~/.orbit/scripts/orbit-init.sh . <type>
 ```
 
 ### Step 4: Confirm
+
 ```
 Orbit initialized for <project>
 Type: <type>
@@ -123,15 +135,18 @@ Edit .orbit/config.json to add sidecars if needed.
 Run tests in fresh Docker container.
 
 ### Prerequisites
+
 - Docker installed and running
 - Project initialized
 
 ### Execution
+
 ```bash
 ~/.orbit/scripts/orbit-test.sh [--fresh] .
 ```
 
 ### What happens
+
 1. Checks Docker available
 2. Starts declared sidecars
 3. Builds Docker image (--fresh skips cache)
@@ -140,6 +155,7 @@ Run tests in fresh Docker container.
 6. Reports pass/fail with duration
 
 ### If Docker unavailable
+
 ```
 Docker required for /orbit test.
 Install: brew install --cask docker (macOS)
@@ -153,6 +169,7 @@ Install: brew install --cask docker (macOS)
 Switch to staging environment (Docker with staging env vars).
 
 ### With MCP (preferred)
+
 ```
 Call orbit_switch_env with:
   environment: "staging"
@@ -160,6 +177,7 @@ Call orbit_switch_env with:
 ```
 
 ### Without MCP
+
 ```bash
 # Check Docker
 ~/.orbit/scripts/check-docker.sh check || {
@@ -178,6 +196,7 @@ sqlite3 ~/.orbit/state.db "UPDATE project_state SET current_env = 'staging', las
 ```
 
 ### Output
+
 ```
 Switched to staging environment
 Sidecars started: <list>
@@ -189,7 +208,18 @@ Sidecars started: <list>
 
 Deploy to production. **Requires confirmation.**
 
-### Step 1: Check readiness
+### With MCP (preferred)
+
+```
+Call orbit_prod with:
+  confirm: true
+  project_path: <cwd>
+```
+
+### Without MCP
+
+#### Step 1: Check readiness
+
 - Project must be initialized
 - Should have passing tests (`/orbit test`)
 - Check `.orbit/config.json` for prod configuration
@@ -197,6 +227,7 @@ Deploy to production. **Requires confirmation.**
 ### Step 2: Confirm with user
 
 Use AskUserQuestion:
+
 ```
 question: "Deploy to production?"
 options:
@@ -207,6 +238,7 @@ options:
 ### Step 3: Deploy
 
 Read prod config from `.orbit/config.json`:
+
 ```json
 {
   "prod": {
@@ -217,6 +249,7 @@ Read prod config from `.orbit/config.json`:
 ```
 
 **If method = "cli":**
+
 ```bash
 # Vercel
 vercel deploy --prod
@@ -226,12 +259,14 @@ railway up
 ```
 
 **If method = "github-actions":**
+
 ```
 Push to trigger deployment workflow.
 Ensure .github/workflows/<provider>-deploy.yml exists.
 ```
 
 ### Step 4: Log result
+
 ```bash
 sqlite3 ~/.orbit/state.db "INSERT INTO audit_log (project, command, environment, success) VALUES ('$(pwd)', 'deploy', 'prod', 1);"
 ```
@@ -243,6 +278,7 @@ sqlite3 ~/.orbit/state.db "INSERT INTO audit_log (project, command, environment,
 Manually override environment (dev/test/staging).
 
 ### With MCP (preferred)
+
 ```
 Call orbit_switch_env with:
   environment: <env>
@@ -252,6 +288,7 @@ Call orbit_switch_env with:
 ### Without MCP
 
 **Switch to dev:**
+
 ```bash
 # Stop containers (dev is local)
 docker compose -f ~/.orbit/docker/docker-compose.yml down 2>/dev/null || true
@@ -263,6 +300,7 @@ echo "Switched to dev (local) environment"
 ```
 
 **Switch to test/staging:**
+
 ```bash
 # Requires Docker
 ~/.orbit/scripts/check-docker.sh check || exit 1
@@ -281,6 +319,7 @@ sqlite3 ~/.orbit/state.db "UPDATE project_state SET current_env = '<env>', last_
 Manage sidecar services.
 
 ### With MCP (preferred)
+
 ```
 # List
 Call orbit_sidecars with action: "list"
@@ -293,6 +332,7 @@ Call orbit_sidecars with action: "stop", sidecar: "<name>"
 ```
 
 ### Available sidecars
+
 | Name | Service | Port |
 |------|---------|------|
 | postgres | PostgreSQL 15 | 5432 |
@@ -303,7 +343,9 @@ Call orbit_sidecars with action: "stop", sidecar: "<name>"
 | aws | LocalStack | 4566 |
 
 ### Configure in project
+
 Edit `.orbit/config.json`:
+
 ```json
 {
   "sidecars": ["postgres", "redis"]
@@ -311,6 +353,7 @@ Edit `.orbit/config.json`:
 ```
 
 ### Manual control
+
 ```bash
 # Start
 docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-<name> up -d
@@ -329,6 +372,7 @@ docker compose -f ~/.orbit/docker/docker-compose.yml ps
 Show recent audit log entries.
 
 ### With MCP (preferred)
+
 ```
 Call orbit_get_state with:
   query_type: "audit"
@@ -337,6 +381,7 @@ Call orbit_get_state with:
 ```
 
 ### Without MCP
+
 ```bash
 sqlite3 -header -column ~/.orbit/state.db \
   "SELECT timestamp, command, environment,
@@ -349,6 +394,7 @@ sqlite3 -header -column ~/.orbit/state.db \
 ```
 
 ### Output format
+
 ```
 Recent activity for <project>:
 
@@ -365,11 +411,13 @@ TIMESTAMP            COMMAND    ENV      RESULT  DURATION
 Stop all Orbit containers.
 
 ### With MCP (preferred)
+
 ```
 Call orbit_stop_all with confirm: true
 ```
 
 ### Without MCP
+
 ```bash
 docker compose -f ~/.orbit/docker/docker-compose.yml down
 
@@ -388,11 +436,13 @@ echo "Stopped all Orbit containers"
 Check version parity between local toolchain and project requirements.
 
 ### Execution
+
 ```bash
 ~/.orbit/scripts/check-parity.sh .
 ```
 
 ### Output
+
 ```json
 {
   "status": "ok|warning",
@@ -405,6 +455,7 @@ Check version parity between local toolchain and project requirements.
 ```
 
 ### If mismatch detected
+
 ```
 ⚠️ Version parity warning:
 Project expects Node 20, you have Node 18
@@ -418,6 +469,7 @@ Consider updating or use /orbit test for consistent environment
 Copy GitHub Actions workflow templates to project.
 
 ### Available templates
+
 | Template | File | Purpose |
 |----------|------|---------|
 | ci | ci.yml | Basic CI (build + test) |
@@ -425,12 +477,14 @@ Copy GitHub Actions workflow templates to project.
 | railway | railway-deploy.yml | Deploy to Railway |
 
 ### Usage
+
 ```bash
 mkdir -p .github/workflows
 cp ~/.orbit/templates/<template>.yml .github/workflows/
 ```
 
 ### Example
+
 ```
 /orbit templates ci
 → Copies ci.yml to .github/workflows/ci.yml
@@ -444,6 +498,7 @@ cp ~/.orbit/templates/<template>.yml .github/workflows/
 Orbit detects monorepos/workspaces automatically during `/orbit init`:
 
 ### Detected workspace types
+
 | Type | Detection |
 |------|-----------|
 | npm | `package.json` with `workspaces` |
@@ -452,11 +507,13 @@ Orbit detects monorepos/workspaces automatically during `/orbit init`:
 | go | `go.work` file |
 
 ### Workspace behavior
+
 - Root project registered in registry
 - Sub-projects tracked in `.orbit/config.json`
 - Shared sidecars across sub-projects
 
 ### Check workspace
+
 ```bash
 ~/.orbit/scripts/detect-workspace.sh .
 # Returns: type|subprojects (e.g., "npm|packages/a,packages/b")
