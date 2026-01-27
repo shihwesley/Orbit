@@ -13,3 +13,4 @@ dist/
 # Local config
 .env
 .env.local
+.npmrc
