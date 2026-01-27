@@ -28,7 +28,7 @@ echo "Installing global configuration and scripts..."
 [ -f "$REPO_ROOT/config/schema.sql" ] && cp "$REPO_ROOT/config/schema.sql" "$ORBIT_ROOT/schema.sql"
 
 # Copy scripts and make executable
-for script in detect-project.sh orbit-init.sh check-docker.sh orbit-test.sh orbit-staging.sh orbit-deploy.sh; do
+for script in detect-project.sh detect-workspace.sh orbit-init.sh check-docker.sh check-parity.sh orbit-test.sh orbit-staging.sh orbit-deploy.sh; do
     if [ -f "$REPO_ROOT/scripts/$script" ]; then
         cp "$REPO_ROOT/scripts/$script" "$ORBIT_ROOT/scripts/$script"
         chmod +x "$ORBIT_ROOT/scripts/$script"
@@ -39,6 +39,11 @@ done
 if [ -d "$REPO_ROOT/docker" ]; then
     cp "$REPO_ROOT/docker/"*.dockerfile "$ORBIT_ROOT/docker/" 2>/dev/null || true
     cp "$REPO_ROOT/docker/docker-compose.yml" "$ORBIT_ROOT/docker/" 2>/dev/null || true
+fi
+
+# Copy GitHub Actions templates
+if [ -d "$REPO_ROOT/templates" ]; then
+    cp "$REPO_ROOT/templates/"*.yml "$ORBIT_ROOT/templates/" 2>/dev/null || true
 fi
 
 # 2. Database & Registry Initialization

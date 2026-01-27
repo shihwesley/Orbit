@@ -101,7 +101,40 @@ SQL
     echo "Updated state.db"
 fi
 
+# Detect workspace
+WORKSPACE_INFO=$("$ORBIT_ROOT/scripts/detect-workspace.sh" "$PROJECT_PATH" 2>/dev/null || echo "none|")
+WORKSPACE_TYPE=$(echo "$WORKSPACE_INFO" | cut -d'|' -f1)
+WORKSPACE_MEMBERS=$(echo "$WORKSPACE_INFO" | cut -d'|' -f2)
+
+if [ "$WORKSPACE_TYPE" != "none" ] && [ -n "$WORKSPACE_MEMBERS" ]; then
+    # Update config with workspace info
+    python3 << PYEOF
+import json
+with open("$PROJECT_PATH/.orbit/config.json", "r") as f:
+    config = json.load(f)
+config["workspace"] = {
+    "type": "$WORKSPACE_TYPE",
+    "members": "$WORKSPACE_MEMBERS".split(",")
+}
+with open("$PROJECT_PATH/.orbit/config.json", "w") as f:
+    json.dump(config, f, indent=2)
+PYEOF
+    echo "Detected workspace: $WORKSPACE_TYPE with ${WORKSPACE_MEMBERS//,/, }"
+fi
+
+# Run parity check
+PARITY=$("$ORBIT_ROOT/scripts/check-parity.sh" "$PROJECT_PATH" 2>/dev/null || echo '{"status":"skip"}')
+PARITY_STATUS=$(echo "$PARITY" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','ok'))" 2>/dev/null || echo "ok")
+
+if [ "$PARITY_STATUS" = "warning" ]; then
+    echo ""
+    echo "⚠️  Version parity warning detected. Run /orbit check for details."
+fi
+
 echo ""
 echo "Orbit initialized for $PROJECT_NAME"
 echo "Type: $PROJECT_TYPE"
 echo "Config: .orbit/config.json"
+if [ "$WORKSPACE_TYPE" != "none" ]; then
+    echo "Workspace: $WORKSPACE_TYPE"
+fi

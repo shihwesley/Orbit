@@ -31,6 +31,8 @@ Parse user input:
 - `/orbit sidecars [action] [name]` → [Sidecars](#orbit-sidecars)
 - `/orbit logs [limit]` → [Logs](#orbit-logs)
 - `/orbit stop` → [Stop All](#orbit-stop)
+- `/orbit check` → [Parity Check](#orbit-check)
+- `/orbit templates` → [Templates](#orbit-templates)
 
 ---
 
@@ -379,6 +381,89 @@ echo "Stopped all Orbit containers"
 
 ---
 
+---
+
+## /orbit check
+
+Check version parity between local toolchain and project requirements.
+
+### Execution
+```bash
+~/.orbit/scripts/check-parity.sh .
+```
+
+### Output
+```json
+{
+  "status": "ok|warning",
+  "project_type": "node",
+  "tool": "node",
+  "local_version": "20.10.0",
+  "required_version": "20",
+  "warnings": []
+}
+```
+
+### If mismatch detected
+```
+⚠️ Version parity warning:
+Project expects Node 20, you have Node 18
+Consider updating or use /orbit test for consistent environment
+```
+
+---
+
+## /orbit templates
+
+Copy GitHub Actions workflow templates to project.
+
+### Available templates
+| Template | File | Purpose |
+|----------|------|---------|
+| ci | ci.yml | Basic CI (build + test) |
+| vercel | vercel-deploy.yml | Deploy to Vercel |
+| railway | railway-deploy.yml | Deploy to Railway |
+
+### Usage
+```bash
+mkdir -p .github/workflows
+cp ~/.orbit/templates/<template>.yml .github/workflows/
+```
+
+### Example
+```
+/orbit templates ci
+→ Copies ci.yml to .github/workflows/ci.yml
+   Edit to uncomment your project type (Node/Python/Go/Rust)
+```
+
+---
+
+## Workspace Support
+
+Orbit detects monorepos/workspaces automatically during `/orbit init`:
+
+### Detected workspace types
+| Type | Detection |
+|------|-----------|
+| npm | `package.json` with `workspaces` |
+| pnpm | `pnpm-workspace.yaml` |
+| cargo | `Cargo.toml` with `[workspace]` |
+| go | `go.work` file |
+
+### Workspace behavior
+- Root project registered in registry
+- Sub-projects tracked in `.orbit/config.json`
+- Shared sidecars across sub-projects
+
+### Check workspace
+```bash
+~/.orbit/scripts/detect-workspace.sh .
+# Returns: type|subprojects (e.g., "npm|packages/a,packages/b")
+```
+
+---
+
 ## Quick Reference
 
 | Command | Action |
@@ -396,3 +481,5 @@ echo "Stopped all Orbit containers"
 | `/orbit sidecars stop redis` | Stop Redis |
 | `/orbit logs` | Show audit history |
 | `/orbit stop` | Stop all containers |
+| `/orbit check` | Version parity check |
+| `/orbit templates ci` | Copy CI template |
