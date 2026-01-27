@@ -7,6 +7,17 @@ description: Manage dev/test/staging/prod environments for projects
 
 Ambient environment management for `~/Source/` projects.
 
+## MCP Tools Available
+
+The Orbit MCP server provides these tools (use directly if available):
+- `orbit_status` - Get current environment status
+- `orbit_switch_env` - Switch to dev/test/staging
+- `orbit_get_state` - Query projects, audit log, registry
+- `orbit_sidecars` - List/start/stop sidecars
+- `orbit_stop_all` - Stop all Orbit containers
+
+If MCP tools are available, prefer using them over shell scripts.
+
 ## Commands
 
 Parse user input to determine command:

@@ -1,0 +1,7 @@
+{
+  "orbit-mcp": {
+    "command": "node",
+    "args": ["~/.orbit/mcp/dist/index.js"],
+    "env": {}
+  }
+}

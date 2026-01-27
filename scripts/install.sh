@@ -165,13 +165,80 @@ if [ -f "$REPO_ROOT/skill/orbit.md" ]; then
     echo "Installed /orbit skill to $COMMANDS_DIR/orbit.md"
 fi
 
+# Install MCP server
+echo ""
+echo "Installing MCP server..."
+if [ -d "$REPO_ROOT/orbit-mcp" ]; then
+    mkdir -p "$ORBIT_ROOT/mcp"
+    cp -r "$REPO_ROOT/orbit-mcp/package.json" "$ORBIT_ROOT/mcp/"
+    cp -r "$REPO_ROOT/orbit-mcp/tsconfig.json" "$ORBIT_ROOT/mcp/"
+    cp -r "$REPO_ROOT/orbit-mcp/src" "$ORBIT_ROOT/mcp/"
+
+    # Check if node_modules exists in source (pre-built) or need to install
+    if [ -d "$REPO_ROOT/orbit-mcp/dist" ]; then
+        cp -r "$REPO_ROOT/orbit-mcp/dist" "$ORBIT_ROOT/mcp/"
+        cp -r "$REPO_ROOT/orbit-mcp/node_modules" "$ORBIT_ROOT/mcp/" 2>/dev/null || true
+        echo "  Copied pre-built MCP server"
+    else
+        echo "  Building MCP server (this may take a moment)..."
+        (cd "$ORBIT_ROOT/mcp" && npm install --silent && npm run build --silent)
+        echo "  Built MCP server"
+    fi
+
+    # Update .mcp.json
+    MCP_CONFIG="$CLAUDE_DIR/.mcp.json"
+    if [ -f "$MCP_CONFIG" ]; then
+        # Add orbit-mcp to existing config using python
+        python3 << PYEOF
+import json
+import os
+
+config_path = "$MCP_CONFIG"
+orbit_root = "$ORBIT_ROOT"
+
+with open(config_path, 'r') as f:
+    config = json.load(f)
+
+# Ensure mcpServers key exists
+if 'mcpServers' not in config:
+    config['mcpServers'] = {}
+
+# Add orbit-mcp
+config['mcpServers']['orbit-mcp'] = {
+    "command": "node",
+    "args": [os.path.join(orbit_root, "mcp", "dist", "index.js")]
+}
+
+with open(config_path, 'w') as f:
+    json.dump(config, f, indent=2)
+PYEOF
+        echo "  Updated $MCP_CONFIG with orbit-mcp"
+    else
+        # Create new .mcp.json
+        cat > "$MCP_CONFIG" << MCPEOF
+{
+  "mcpServers": {
+    "orbit-mcp": {
+      "command": "node",
+      "args": ["$ORBIT_ROOT/mcp/dist/index.js"]
+    }
+  }
+}
+MCPEOF
+        echo "  Created $MCP_CONFIG"
+    fi
+fi
+
 echo ""
 echo "=== Installation Complete ==="
 echo ""
 echo "Orbit root: $ORBIT_ROOT"
 echo "Skill: $COMMANDS_DIR/orbit.md"
+echo "MCP server: $ORBIT_ROOT/mcp/"
+echo "MCP config: $CLAUDE_DIR/.mcp.json"
 echo ""
 echo "Next steps:"
-echo "  1. Run '/orbit init' in a project to register it"
-echo "  2. MCP server will be configured in Phase 4"
+echo "  1. Restart Claude Code to load the MCP server"
+echo "  2. Run '/orbit init' in a project to register it"
+echo "  3. Use '/orbit status' to check environment state"
 echo ""
