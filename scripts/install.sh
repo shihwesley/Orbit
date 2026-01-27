@@ -131,6 +131,48 @@ COMMANDS_DIR="$CLAUDE_DIR/commands"
 mkdir -p "$COMMANDS_DIR"
 [ -f "$REPO_ROOT/skill/orbit.md" ] && cp "$REPO_ROOT/skill/orbit.md" "$COMMANDS_DIR/orbit.md"
 
+# 7. Install Hooks
+echo "Installing automation hooks..."
+mkdir -p "$ORBIT_ROOT/hooks"
+for hook in orbit-session-start.sh orbit-stop.sh; do
+    if [ -f "$REPO_ROOT/hooks/$hook" ]; then
+        cp "$REPO_ROOT/hooks/$hook" "$ORBIT_ROOT/hooks/"
+        chmod +x "$ORBIT_ROOT/hooks/$hook"
+    fi
+done
+
+# Register hooks in settings.json (async to avoid blocking)
+SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+
+register_hook() {
+    local event=$1
+    local cmd=$2
+    if [ -f "$SETTINGS_FILE" ]; then
+        if ! grep -q "$(basename "$cmd")" "$SETTINGS_FILE"; then
+            cp "$SETTINGS_FILE" "$SETTINGS_FILE.bak"
+            node -e "
+                const fs = require('fs');
+                const data = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
+                data.hooks = data.hooks || {};
+                data.hooks['$event'] = data.hooks['$event'] || [];
+                data.hooks['$event'].push({
+                    hooks: [{
+                        type: 'command',
+                        command: '$cmd',
+                        timeout: 5,
+                        async: true
+                    }]
+                });
+                fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(data, null, 2));
+            "
+            echo "  Registered $event hook (async: $(basename "$cmd"))"
+        fi
+    fi
+}
+
+register_hook "SessionStart" "$ORBIT_ROOT/hooks/orbit-session-start.sh"
+register_hook "Stop" "$ORBIT_ROOT/hooks/orbit-stop.sh"
+
 echo ""
 echo "=== Installation Complete ==="
 echo "Restart Claude Code to apply changes."
