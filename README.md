@@ -28,7 +28,7 @@ To install Orbit and its MCP server:
 1. **Install globally via NPM**:
 
    ```bash
-   npm install -g @orbit/core
+   npm install -g @shihwesley/orbit
    ```
 
 2. **Run the setup command**:
