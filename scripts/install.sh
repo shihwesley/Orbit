@@ -34,13 +34,20 @@ else
 fi
 
 # Copy helper scripts
-for script in detect-project.sh orbit-init.sh; do
+for script in detect-project.sh orbit-init.sh check-docker.sh orbit-test.sh; do
     if [ -f "$REPO_ROOT/scripts/$script" ]; then
         cp "$REPO_ROOT/scripts/$script" "$ORBIT_ROOT/scripts/$script"
         chmod +x "$ORBIT_ROOT/scripts/$script"
         echo "  Installed $script"
     fi
 done
+
+# Copy Docker files
+if [ -d "$REPO_ROOT/docker" ]; then
+    cp "$REPO_ROOT/docker/"*.dockerfile "$ORBIT_ROOT/docker/" 2>/dev/null || true
+    cp "$REPO_ROOT/docker/docker-compose.yml" "$ORBIT_ROOT/docker/" 2>/dev/null || true
+    echo "  Installed Docker configs"
+fi
 
 # Initialize empty registry
 if [ ! -f "$ORBIT_ROOT/registry.json" ]; then
@@ -60,6 +67,46 @@ if [ ! -f "$ORBIT_ROOT/state.db" ]; then
     fi
 else
     echo "  state.db already exists, skipping"
+fi
+
+# Check Docker status
+echo ""
+echo "Checking Docker..."
+if command -v docker &>/dev/null; then
+    if docker info &>/dev/null 2>&1; then
+        echo "  Docker: installed and running"
+        docker --version | sed 's/^/  /'
+    else
+        echo "  Docker: installed but NOT running"
+        echo ""
+        echo "  NOTE: Docker daemon is not running."
+        echo "  /orbit test and /orbit staging require Docker."
+        echo "  Start Docker Desktop or run: sudo systemctl start docker"
+    fi
+else
+    echo "  Docker: NOT installed"
+    echo ""
+    echo "  NOTE: Docker is required for /orbit test and /orbit staging."
+    echo "  Dev environment (/orbit init, /orbit status) works without Docker."
+    echo ""
+    case "$(uname -s)" in
+        Darwin)
+            echo "  To install Docker on macOS:"
+            echo "    brew install --cask docker"
+            echo "    # or download from docker.com/products/docker-desktop"
+            ;;
+        Linux)
+            echo "  To install Docker on Linux:"
+            if command -v apt-get &>/dev/null; then
+                echo "    sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2"
+            else
+                echo "    See https://docs.docker.com/engine/install/"
+            fi
+            ;;
+        *)
+            echo "  See https://docs.docker.com/engine/install/"
+            ;;
+    esac
 fi
 
 # Inject enforcement protocol into CLAUDE.md

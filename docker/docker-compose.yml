@@ -1,0 +1,169 @@
+# Orbit: Docker Compose for test/staging environments
+# Use profiles to run specific services
+#
+# Usage:
+#   docker compose --profile node up          # Node.js tests
+#   docker compose --profile python up        # Python tests
+#   docker compose --profile sidecar-postgres up -d  # Start Postgres
+#
+# Environment variables (set by Orbit):
+#   PROJECT_PATH    - Absolute path to project
+#   PROJECT_TYPE    - node|python|go|rust
+#   ORBIT_ROOT      - ~/.orbit path
+#   NODE_VERSION    - Node.js version (default: 20)
+#   PYTHON_VERSION  - Python version (default: 3.11)
+#   GO_VERSION      - Go version (default: 1.21)
+#   RUST_VERSION    - Rust version (default: 1.75)
+
+services:
+  # ===================
+  # Test Runners
+  # ===================
+
+  test-node:
+    build:
+      context: ${PROJECT_PATH:-.}
+      dockerfile: ${ORBIT_ROOT:-~/.orbit}/docker/node.dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION:-20}
+    profiles: ["node"]
+    volumes:
+      - ${PROJECT_PATH:-.}:/app:cached
+      - node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=test
+      - CI=true
+    working_dir: /app
+
+  test-python:
+    build:
+      context: ${PROJECT_PATH:-.}
+      dockerfile: ${ORBIT_ROOT:-~/.orbit}/docker/python.dockerfile
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
+    profiles: ["python"]
+    volumes:
+      - ${PROJECT_PATH:-.}:/app:cached
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    working_dir: /app
+
+  test-go:
+    build:
+      context: ${PROJECT_PATH:-.}
+      dockerfile: ${ORBIT_ROOT:-~/.orbit}/docker/go.dockerfile
+      args:
+        GO_VERSION: ${GO_VERSION:-1.21}
+    profiles: ["go"]
+    volumes:
+      - ${PROJECT_PATH:-.}:/app:cached
+      - go_cache:/go/pkg/mod
+    environment:
+      - CGO_ENABLED=0
+    working_dir: /app
+
+  test-rust:
+    build:
+      context: ${PROJECT_PATH:-.}
+      dockerfile: ${ORBIT_ROOT:-~/.orbit}/docker/rust.dockerfile
+      args:
+        RUST_VERSION: ${RUST_VERSION:-1.75}
+    profiles: ["rust"]
+    volumes:
+      - ${PROJECT_PATH:-.}:/app:cached
+      - cargo_cache:/usr/local/cargo/registry
+      - target_cache:/app/target
+    working_dir: /app
+
+  # ===================
+  # Sidecars (lazy-loaded)
+  # ===================
+
+  postgres:
+    image: postgres:15-alpine
+    profiles: ["sidecar-postgres"]
+    environment:
+      POSTGRES_USER: orbit
+      POSTGRES_PASSWORD: orbit_test
+      POSTGRES_DB: orbit_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orbit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    profiles: ["sidecar-redis"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mysql:
+    image: mysql:8
+    profiles: ["sidecar-mysql"]
+    environment:
+      MYSQL_ROOT_PASSWORD: orbit_test
+      MYSQL_DATABASE: orbit_test
+      MYSQL_USER: orbit
+      MYSQL_PASSWORD: orbit_test
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    profiles: ["sidecar-mongodb"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: orbit
+      MONGO_INITDB_ROOT_PASSWORD: orbit_test
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    profiles: ["sidecar-rabbitmq"]
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: orbit
+      RABBITMQ_DEFAULT_PASS: orbit_test
+
+  localstack:
+    image: localstack/localstack:latest
+    profiles: ["sidecar-aws"]
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,sqs,sns,dynamodb,lambda
+      - DEBUG=0
+    volumes:
+      - localstack_data:/var/lib/localstack
+
+volumes:
+  node_modules:
+  go_cache:
+  cargo_cache:
+  target_cache:
+  postgres_data:
+  mysql_data:
+  mongodb_data:
+  localstack_data:

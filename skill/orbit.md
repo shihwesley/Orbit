@@ -109,15 +109,82 @@ Next: Edit .orbit/config.json to add sidecars if needed
 
 ---
 
+---
+
+## /orbit test [--fresh]
+
+Run tests in a fresh Docker container (clean-room testing).
+
+### Prerequisites
+- Docker must be installed and running
+- Project must be initialized (`/orbit init`)
+
+### Execution
+
+```bash
+~/.orbit/scripts/orbit-test.sh [--fresh] .
+```
+
+**Flags:**
+- `--fresh`: Skip Docker cache, rebuild from scratch
+
+### What it does
+1. Checks Docker is available
+2. Reads project type from `.orbit/config.json`
+3. Starts declared sidecars (postgres, redis, etc.)
+4. Builds Docker image using language-specific Dockerfile
+5. Runs tests in container
+6. Logs result to audit database
+7. Reports pass/fail with duration
+
+### If Docker not available
+Tell user:
+```
+Docker is required for /orbit test.
+Run: brew install --cask docker (macOS)
+Or: sudo apt-get install docker.io (Linux)
+```
+
+---
+
+## /orbit sidecars
+
+Manage sidecar services (databases, caches, etc.)
+
+### List available sidecars
+- postgres (PostgreSQL 15)
+- redis (Redis 7)
+- mysql (MySQL 8)
+- mongodb (MongoDB 7)
+- rabbitmq (RabbitMQ 3)
+- aws (LocalStack for S3, SQS, DynamoDB, etc.)
+
+### Configure sidecars
+Edit `.orbit/config.json`:
+```json
+{
+  "sidecars": ["postgres", "redis"]
+}
+```
+
+### Start/stop sidecars manually
+```bash
+# Start
+docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-postgres up -d
+
+# Stop
+docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-postgres down
+```
+
+---
+
 ## Not Yet Implemented
 
 These commands require later phases:
 
-- `/orbit test` - Phase 3 (Docker infrastructure)
-- `/orbit staging` - Phase 3 (Docker infrastructure)
+- `/orbit staging` - Phase 3+ (staging env with staging vars)
 - `/orbit prod` - Phase 7 (Cloud deploy)
 - `/orbit use <env>` - Phase 5 (MCP server)
-- `/orbit sidecars` - Phase 3 (Docker infrastructure)
 - `/orbit logs` - Phase 5 (full implementation)
 
 For now, inform user these are coming soon.
