@@ -19,7 +19,7 @@ const program = new Command();
 program
     .name('orbit')
     .description('Orbit - Ambient development environment management\n\nNote: For daily usage, prefer using "/orbit" slash commands inside Claude Code.')
-    .version('1.1.0');
+    .version('1.1.1');
 
 // Helper to run existing shell scripts
 async function runScript(scriptName, args = []) {
