@@ -13,7 +13,7 @@
     },
     "files": [
         "bin/",
-        "orbit-mcp/dist/",
+        "orbit-mcp/",
         "scripts/",
         "docker/",
         "config/",
