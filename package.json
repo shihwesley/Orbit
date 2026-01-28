@@ -23,6 +23,7 @@
     ],
     "scripts": {
         "build": "cd orbit-mcp && npm install && npm run build",
+        "postinstall": "cd orbit-mcp && npm install --silent && npm run build --silent",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [
