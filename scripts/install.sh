@@ -13,6 +13,18 @@ MCP_CONFIG="$HOME/.claude.json"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${ORBIT_PACKAGE_ROOT:-$(dirname "$SCRIPT_DIR")}"
 
+# Detect node binary - derive from REPO_ROOT (npm global install path)
+# e.g., /path/to/node/lib/node_modules/@shihwesley/orbit -> /path/to/node/bin/node
+if command -v node &>/dev/null; then
+    NODE_BIN="node"
+else
+    NODE_BIN="$(cd "$REPO_ROOT/../../.." && pwd)/bin/node"
+    if [ ! -x "$NODE_BIN" ]; then
+        echo "Error: Cannot find node binary. Please ensure node is in PATH."
+        exit 1
+    fi
+fi
+
 echo "=== Orbit Installation (Refactored) ==="
 echo ""
 
@@ -113,7 +125,7 @@ else
         cp "$MCP_CONFIG" "$MCP_CONFIG.bak"
         # Use a simpler way to add the config if we don't want python
         # We can use node to do the JSON manipulation since it's a node project!
-        node -e "
+        "$NODE_BIN" -e "
             const fs = require('fs');
             const data = JSON.parse(fs.readFileSync('$MCP_CONFIG', 'utf8'));
             data.mcpServers = data.mcpServers || {};
@@ -150,7 +162,7 @@ register_hook() {
     if [ -f "$SETTINGS_FILE" ]; then
         if ! grep -q "$(basename "$cmd")" "$SETTINGS_FILE"; then
             cp "$SETTINGS_FILE" "$SETTINGS_FILE.bak"
-            node -e "
+            "$NODE_BIN" -e "
                 const fs = require('fs');
                 const data = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
                 data.hooks = data.hooks || {};
