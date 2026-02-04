@@ -151,7 +151,7 @@ const TOOL_REGISTRY: ToolHandler[] = [
 const server = new Server(
   {
     name: 'orbit-mcp',
-    version: '1.1.0', // Increased version for refactor
+    version: '1.2.0', // Sandbox integration
   },
   {
     capabilities: {
