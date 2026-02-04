@@ -16,6 +16,7 @@ import { switchEnvSchema, switchEnv } from './tools/switchEnv.js';
 import { getStateSchema, getState } from './tools/getState.js';
 import { sidecarsSchema, manageSidecars, AVAILABLE_SIDECARS } from './tools/sidecars.js';
 import { stopAllSchema, stopAll } from './tools/stopAll.js';
+import { sandboxSchema, manageSandbox } from './tools/sandbox.js';
 import { closeDb } from './stateDb.js';
 
 // Tool Registry Type
@@ -123,6 +124,26 @@ const TOOL_REGISTRY: ToolHandler[] = [
       },
     },
     handler: async (args) => stopAll(stopAllSchema.parse(args || {})),
+  },
+  {
+    name: 'orbit_sandbox',
+    description: 'Manage Docker Sandbox (microVM) isolation. Actions: status (check capabilities + list sandboxes), create (new sandbox for project), reset (destroy + recreate), remove (delete sandbox), health (verify sandbox runtime works).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['status', 'create', 'reset', 'remove', 'health'],
+          description: 'Sandbox action',
+        },
+        project_path: {
+          type: 'string',
+          description: 'Project path (defaults to cwd)',
+        },
+      },
+      required: ['action'],
+    },
+    handler: async (args) => manageSandbox(sandboxSchema.parse(args)),
   },
 ];
 
