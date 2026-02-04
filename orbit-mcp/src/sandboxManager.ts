@@ -18,6 +18,13 @@ export interface SandboxInfo {
   status: 'running' | 'stopped' | 'unknown';
 }
 
+export interface SandboxCreateOptions {
+  /** Enable isolated Docker daemon inside the sandbox (DinD) */
+  enableDocker?: boolean;
+  /** Additional CLI flags (e.g. from sandboxPolicy) */
+  extraFlags?: string[];
+}
+
 /**
  * Generate a deterministic sandbox name for a project + environment
  */
@@ -58,6 +65,7 @@ export async function createSandbox(
   projectName: string,
   projectPath: string,
   env = 'test',
+  opts: SandboxCreateOptions = {},
 ): Promise<string> {
   const name = sandboxName(projectName, env);
 
@@ -67,9 +75,23 @@ export async function createSandbox(
     return name; // Already exists, reuse it
   }
 
-  // Create with workspace mount only — security-first default
+  // Build flags
+  const flags = [
+    `--mount type=bind,source="${projectPath}",target=/workspace`,
+  ];
+
+  // DinD: enable isolated Docker daemon inside sandbox
+  if (opts.enableDocker) {
+    flags.push('--enable-docker');
+  }
+
+  // Append any extra flags (e.g. network policy flags from sandboxPolicy)
+  if (opts.extraFlags?.length) {
+    flags.push(...opts.extraFlags);
+  }
+
   await exec(
-    `docker sandbox create --mount type=bind,source="${projectPath}",target=/workspace ${name}`,
+    `docker sandbox create ${flags.join(' ')} ${name}`,
     { timeout: SANDBOX_TIMEOUT },
   );
 
@@ -123,10 +145,26 @@ export async function resetSandbox(
   projectName: string,
   projectPath: string,
   env = 'test',
+  opts: SandboxCreateOptions = {},
 ): Promise<string> {
   const name = sandboxName(projectName, env);
   await removeSandbox(name);
-  return createSandbox(projectName, projectPath, env);
+  return createSandbox(projectName, projectPath, env, opts);
+}
+
+/**
+ * Verify that the isolated Docker daemon is running inside a sandbox.
+ * Returns true if the agent can use docker build/run inside the sandbox.
+ */
+export async function verifyDinD(name: string): Promise<boolean> {
+  try {
+    const { stdout } = await execInSandbox(name, 'docker info --format "{{.ServerVersion}}"', {
+      timeout: 15_000,
+    });
+    return stdout.trim().length > 0;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -137,11 +175,12 @@ export async function ensureIsolation(
   projectName: string,
   projectPath: string,
   env = 'test',
+  opts: SandboxCreateOptions = {},
 ): Promise<{ backend: SandboxBackend; name: string }> {
   const caps = await detectSandboxCapabilities();
 
   if (caps.recommended === 'sandbox') {
-    const name = await createSandbox(projectName, projectPath, env);
+    const name = await createSandbox(projectName, projectPath, env, opts);
     return { backend: 'sandbox', name };
   }
 
