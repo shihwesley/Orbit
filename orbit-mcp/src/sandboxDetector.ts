@@ -7,7 +7,9 @@
 
 import { exec as execCallback } from 'child_process';
 import { promisify } from 'util';
-import { platform } from 'os';
+import { platform, tmpdir } from 'os';
+import { mkdtemp, rm } from 'fs/promises';
+import { join } from 'path';
 
 const exec = promisify(execCallback);
 
@@ -101,19 +103,32 @@ export interface SandboxHealthResult {
 const HEALTH_CHECK_TIMEOUT = 30_000; // 30s — microVM boot is slower than containers
 
 /**
- * Verify sandbox runtime actually works by creating a throwaway sandbox,
- * running a command inside it, and tearing it down.
+ * Verify sandbox runtime actually works by creating a throwaway sandbox
+ * with a temp workspace, running a command inside it, and tearing it down.
  *
  * Uses a unique name to avoid collisions if multiple checks run concurrently.
- * Cleanup runs in finally so broken sandboxes don't linger.
+ * Creates a real temp directory as workspace so the health check mirrors
+ * actual sandbox creation (which requires a workspace mount).
+ * Cleanup runs in finally so broken sandboxes and temp dirs don't linger.
  */
 export async function checkSandboxHealth(): Promise<SandboxHealthResult> {
   const name = `orbit-healthcheck-${Date.now()}`;
   const start = Date.now();
+  let tempDir: string | undefined;
 
   try {
-    await exec(`docker sandbox create ${name}`, { timeout: HEALTH_CHECK_TIMEOUT });
-    const { stdout } = await exec(`docker sandbox exec ${name} echo ok`, { timeout: HEALTH_CHECK_TIMEOUT });
+    // Create a real temp workspace to mirror actual sandbox creation
+    tempDir = await mkdtemp(join(tmpdir(), 'orbit-health-'));
+
+    // UNVERIFIED: --mount syntax assumed from docker run. Verify with `docker sandbox --help`.
+    await exec(
+      `docker sandbox create --mount type=bind,source="${tempDir}",target=/workspace ${name}`,
+      { timeout: HEALTH_CHECK_TIMEOUT },
+    );
+    const { stdout } = await exec(
+      `docker sandbox exec ${name} echo ok`,
+      { timeout: HEALTH_CHECK_TIMEOUT },
+    );
 
     if (stdout.trim() !== 'ok') {
       return { healthy: false, latencyMs: Date.now() - start, error: `Unexpected output: ${stdout.trim()}` };
@@ -124,7 +139,8 @@ export async function checkSandboxHealth(): Promise<SandboxHealthResult> {
     const message = err instanceof Error ? err.message : String(err);
     return { healthy: false, latencyMs: Date.now() - start, error: message };
   } finally {
-    // Always clean up — swallow errors since the sandbox may not have been created
+    // Always clean up — swallow errors since sandbox/dir may not have been created
     try { await exec(`docker sandbox rm ${name}`); } catch { /* noop */ }
+    if (tempDir) { try { await rm(tempDir, { recursive: true }); } catch { /* noop */ } }
   }
 }

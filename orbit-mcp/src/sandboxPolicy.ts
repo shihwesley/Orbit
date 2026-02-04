@@ -2,10 +2,18 @@
  * Network isolation & security policies for Docker Sandboxes
  *
  * Reads per-project sandbox config from .orbit/config.json and
- * generates sandbox creation flags for network/security enforcement.
+ * generates creation flags appropriate to the isolation backend.
+ *
+ * KEY DESIGN: Sandbox (microVM) and container backends have fundamentally
+ * different security models:
+ * - Sandbox: hypervisor IS the boundary. Only network policy applies.
+ *   Docker daemon inside is already isolated. No cap_drop/read-only needed.
+ * - Container: shared kernel. Needs layered hardening (cap_drop, read-only,
+ *   no-new-privileges, seccomp) to approximate sandbox-level isolation.
  */
 
 import { z } from 'zod';
+import type { SandboxBackend } from './sandboxDetector.js';
 
 /**
  * Sandbox policy schema — extends .orbit/config.json with a "sandbox" key
@@ -19,10 +27,10 @@ import { z } from 'zod';
  *       "allow": ["registry.npmjs.org", "github.com"],
  *       "deny": []
  *     },
- *     "security": {
+ *     "containerHardening": {
  *       "readOnlyRoot": true,
- *       "noHostDocker": true,
- *       "dropCapabilities": true
+ *       "dropCapabilities": true,
+ *       "noNewPrivileges": true
  *     }
  *   }
  * }
@@ -40,23 +48,21 @@ export const sandboxPolicySchema = z.object({
     allow: [],
     deny: [],
   }),
-  security: z.object({
-    /** Mount root filesystem as read-only (workspace still writable) */
+  /** Container-only hardening — ignored when running in a microVM sandbox */
+  containerHardening: z.object({
     readOnlyRoot: z.boolean().default(true),
-    /** Prevent access to host Docker daemon */
-    noHostDocker: z.boolean().default(true),
-    /** Drop all Linux capabilities except minimal set */
     dropCapabilities: z.boolean().default(true),
+    noNewPrivileges: z.boolean().default(true),
   }).default({
     readOnlyRoot: true,
-    noHostDocker: true,
     dropCapabilities: true,
+    noNewPrivileges: true,
   }),
 });
 
 export type SandboxPolicy = z.infer<typeof sandboxPolicySchema>;
 
-/** Security-first defaults — deny-all network, max hardening */
+/** Security-first defaults — deny-all network, max container hardening */
 export const DEFAULT_POLICY: SandboxPolicy = sandboxPolicySchema.parse({});
 
 /**
@@ -72,39 +78,55 @@ export function parseSandboxPolicy(projectConfig: Record<string, unknown>): Sand
 }
 
 /**
- * Convert a SandboxPolicy into CLI flags for `docker sandbox create`
+ * Generate network-related flags (shared between sandbox and container modes).
+ *
+ * NOTE: Flag names are based on Docker Sandbox documentation (experimental).
+ * Actual CLI may differ — these should be verified against `docker sandbox --help`
+ * once the feature is available on the target Docker Desktop version.
  */
-export function policyToFlags(policy: SandboxPolicy): string[] {
+function networkFlags(policy: SandboxPolicy): string[] {
   const flags: string[] = [];
 
-  // Network isolation
   switch (policy.network.mode) {
     case 'deny-all':
+      // UNVERIFIED: actual flag may differ for sandbox vs container
       flags.push('--network=none');
       break;
     case 'allow':
-      // Docker sandboxes support --network-allow for allowlisted domains
+      // UNVERIFIED: Docker Sandbox docs mention allow/deny lists but
+      // exact flag syntax not confirmed without `docker sandbox --help`
       for (const domain of policy.network.allow) {
         flags.push(`--network-allow=${domain}`);
       }
       break;
     case 'open':
-      // Open network, but apply deny list
       for (const domain of policy.network.deny) {
         flags.push(`--network-deny=${domain}`);
       }
       break;
   }
 
-  // Security hardening
-  if (policy.security.readOnlyRoot) {
-    flags.push('--read-only');
-  }
-  if (policy.security.noHostDocker) {
-    flags.push('--no-docker');
-  }
-  if (policy.security.dropCapabilities) {
-    flags.push('--cap-drop=ALL');
+  return flags;
+}
+
+/**
+ * Convert a SandboxPolicy into CLI flags for `docker sandbox create`.
+ *
+ * For microVM sandboxes: only network flags. The hypervisor provides
+ * isolation — no cap_drop, read-only, or Docker daemon flags needed.
+ *
+ * For containers: network flags + all hardening flags. Shared kernel
+ * means we need defense-in-depth.
+ */
+export function policyToFlags(policy: SandboxPolicy, backend: SandboxBackend): string[] {
+  const flags = networkFlags(policy);
+
+  // Container-only hardening — microVM sandboxes don't need these
+  if (backend === 'container') {
+    const h = policy.containerHardening;
+    if (h.readOnlyRoot) flags.push('--read-only');
+    if (h.dropCapabilities) flags.push('--cap-drop=ALL');
+    if (h.noNewPrivileges) flags.push('--security-opt=no-new-privileges:true');
   }
 
   return flags;
@@ -113,7 +135,7 @@ export function policyToFlags(policy: SandboxPolicy): string[] {
 /**
  * Describe the policy in human-readable form for status output
  */
-export function describeSandboxPolicy(policy: SandboxPolicy): string {
+export function describeSandboxPolicy(policy: SandboxPolicy, backend: SandboxBackend): string {
   const parts: string[] = [];
 
   switch (policy.network.mode) {
@@ -128,15 +150,18 @@ export function describeSandboxPolicy(policy: SandboxPolicy): string {
       break;
   }
 
-  const sec = policy.security;
-  const hardening = [
-    sec.readOnlyRoot && 'read-only root',
-    sec.noHostDocker && 'no host Docker',
-    sec.dropCapabilities && 'caps dropped',
-  ].filter(Boolean);
-
-  if (hardening.length) {
-    parts.push(`Security: ${hardening.join(', ')}`);
+  if (backend === 'sandbox') {
+    parts.push('Isolation: microVM (hypervisor)');
+  } else {
+    const h = policy.containerHardening;
+    const hardening = [
+      h.readOnlyRoot && 'read-only root',
+      h.dropCapabilities && 'caps dropped',
+      h.noNewPrivileges && 'no-new-privileges',
+    ].filter(Boolean);
+    if (hardening.length) {
+      parts.push(`Security: ${hardening.join(', ')}`);
+    }
   }
 
   return parts.join(' | ');

@@ -6,8 +6,8 @@ import { z } from 'zod';
 import { updateProjectState, logAudit, getProjectState, type Environment } from '../stateDb.js';
 import { startSidecars, stopAllOrbitContainers, requireDocker } from '../dockerManager.js';
 import { readProjectConfig } from '../utils.js';
-import { ensureIsolation, removeSandbox, sandboxName, type SandboxCreateOptions } from '../sandboxManager.js';
-import { parseSandboxPolicy, policyToFlags, describeSandboxPolicy } from '../sandboxPolicy.js';
+import { ensureIsolation, removeSandbox, sandboxName } from '../sandboxManager.js';
+import { parseSandboxPolicy, describeSandboxPolicy } from '../sandboxPolicy.js';
 import type { SandboxBackend } from '../sandboxDetector.js';
 
 export const switchEnvSchema = z.object({
@@ -69,20 +69,17 @@ export async function switchEnv(input: SwitchEnvInput): Promise<SwitchEnvResult>
     // Test env: use sandbox (microVM) when available, hardened containers as fallback
     await requireDocker();
 
-    // Parse sandbox policy from project config
     const policy = parseSandboxPolicy(config);
-    const policyFlags = policyToFlags(policy);
+    const projectType = (config.type as string) || 'node';
 
-    const createOpts: SandboxCreateOptions = {
-      enableDocker: true, // Agents need DinD by default in test
-      extraFlags: policyFlags,
-    };
-
-    const result = await ensureIsolation(projectName, projectPath, 'test', createOpts);
+    // ensureIsolation picks the backend and applies appropriate flags:
+    // - sandbox: network policy only (hypervisor handles security + Docker isolation)
+    // - container: network policy + cap_drop, read-only, no-new-privileges
+    const result = await ensureIsolation(projectName, projectPath, projectType, 'test', policy);
     isolation = {
       backend: result.backend,
       name: result.name,
-      policy: describeSandboxPolicy(policy),
+      policy: describeSandboxPolicy(policy, result.backend),
     };
 
     // Start sidecars if configured

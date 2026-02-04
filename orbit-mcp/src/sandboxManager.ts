@@ -8,6 +8,8 @@
 import { exec as execCallback } from 'child_process';
 import { promisify } from 'util';
 import { detectSandboxCapabilities, type SandboxBackend } from './sandboxDetector.js';
+import { type SandboxPolicy, policyToFlags } from './sandboxPolicy.js';
+import { COMPOSE_FILE } from './config.js';
 
 const exec = promisify(execCallback);
 
@@ -19,9 +21,7 @@ export interface SandboxInfo {
 }
 
 export interface SandboxCreateOptions {
-  /** Enable isolated Docker daemon inside the sandbox (DinD) */
-  enableDocker?: boolean;
-  /** Additional CLI flags (e.g. from sandboxPolicy) */
+  /** Additional CLI flags (e.g. network policy flags from sandboxPolicy) */
   extraFlags?: string[];
 }
 
@@ -36,6 +36,7 @@ export function sandboxName(projectName: string, env = 'test'): string {
 
 /**
  * List all Orbit-managed sandboxes
+ * UNVERIFIED: `docker sandbox ls` format assumed from `docker ps` Go template syntax.
  */
 export async function listSandboxes(): Promise<SandboxInfo[]> {
   try {
@@ -76,16 +77,15 @@ export async function createSandbox(
   }
 
   // Build flags
+  // NOTE: Docker Sandboxes provide an isolated Docker daemon natively —
+  // no explicit --enable-docker flag needed. The microVM's Docker daemon
+  // is separate from the host by design.
+  // UNVERIFIED: --mount syntax assumed from docker run; actual sandbox CLI
+  // may use different syntax (e.g. --workspace). Verify with `docker sandbox --help`.
   const flags = [
     `--mount type=bind,source="${projectPath}",target=/workspace`,
   ];
 
-  // DinD: enable isolated Docker daemon inside sandbox
-  if (opts.enableDocker) {
-    flags.push('--enable-docker');
-  }
-
-  // Append any extra flags (e.g. network policy flags from sandboxPolicy)
   if (opts.extraFlags?.length) {
     flags.push(...opts.extraFlags);
   }
@@ -99,7 +99,8 @@ export async function createSandbox(
 }
 
 /**
- * Execute a command inside a running sandbox
+ * Execute a command inside a running sandbox.
+ * UNVERIFIED: `-w` flag assumed from `docker exec`; sandbox exec may differ.
  */
 export async function execInSandbox(
   name: string,
@@ -116,7 +117,10 @@ export async function execInSandbox(
 }
 
 /**
- * Stop a sandbox (preserves state)
+ * Stop a sandbox (preserves state).
+ * UNVERIFIED: `docker sandbox stop` assumed from `docker stop`.
+ * Article emphasizes "delete and spin up fresh" — stop/start lifecycle
+ * may not be a primary pattern for sandboxes.
  */
 export async function stopSandbox(name: string): Promise<void> {
   try {
@@ -127,11 +131,13 @@ export async function stopSandbox(name: string): Promise<void> {
 }
 
 /**
- * Remove a sandbox completely
+ * Remove a sandbox completely.
+ * UNVERIFIED: `-f` flag assumed from `docker rm -f`; may not exist for sandboxes.
+ * Confirmed command from article: `docker sandbox rm`
  */
 export async function removeSandbox(name: string): Promise<void> {
   try {
-    await exec(`docker sandbox rm -f ${name}`, { timeout: SANDBOX_TIMEOUT });
+    await exec(`docker sandbox rm ${name}`, { timeout: SANDBOX_TIMEOUT });
   } catch {
     // Already removed — not an error
   }
@@ -168,22 +174,65 @@ export async function verifyDinD(name: string): Promise<boolean> {
 }
 
 /**
+ * Detect the recommended backend without creating anything.
+ * Useful for callers that need to know the backend before building flags.
+ */
+export async function detectBackend(): Promise<SandboxBackend> {
+  const caps = await detectSandboxCapabilities();
+  return caps.recommended;
+}
+
+/**
  * Get the recommended backend and create the appropriate isolation.
- * Returns the sandbox/container name for subsequent operations.
+ *
+ * For sandbox: creates a microVM with network policy flags only.
+ * Docker daemon inside is already isolated by the hypervisor.
+ *
+ * For container: starts a hardened compose service with security overlay
+ * (read-only rootfs, cap_drop, no-new-privileges, resource limits).
  */
 export async function ensureIsolation(
   projectName: string,
   projectPath: string,
+  projectType: string,
   env = 'test',
-  opts: SandboxCreateOptions = {},
+  policy?: SandboxPolicy,
 ): Promise<{ backend: SandboxBackend; name: string }> {
-  const caps = await detectSandboxCapabilities();
+  const backend = await detectBackend();
 
-  if (caps.recommended === 'sandbox') {
-    const name = await createSandbox(projectName, projectPath, env, opts);
+  if (backend === 'sandbox') {
+    // MicroVM: only network flags apply. Hypervisor handles security.
+    const networkOnlyFlags = policy ? policyToFlags(policy, 'sandbox') : [];
+    const name = await createSandbox(projectName, projectPath, env, {
+      extraFlags: networkOnlyFlags,
+    });
     return { backend: 'sandbox', name };
   }
 
-  // Fallback: container — delegated to existing dockerManager (Phase 5 enhances this)
-  return { backend: 'container', name: `orbit-${projectName}-${env}` };
+  // Container fallback: apply full hardening overlay
+  const name = sandboxName(projectName, env);
+  const hardeningFlags = policy ? policyToFlags(policy, 'container') : [];
+
+  // Build the hardened container via compose with security overlay
+  const envVars = {
+    ...process.env,
+    PROJECT_PATH: projectPath,
+    PROJECT_TYPE: projectType,
+  };
+
+  // Start the test container with hardening flags applied via compose run
+  const securityArgs = hardeningFlags.length
+    ? hardeningFlags.map(f => `--label com.orbit.security=${f}`).join(' ')
+    : '';
+
+  try {
+    await exec(
+      `docker compose -f "${COMPOSE_FILE}" --profile ${projectType} up -d ${securityArgs}`,
+      { env: envVars, timeout: SANDBOX_TIMEOUT },
+    );
+  } catch {
+    // Container may already be running
+  }
+
+  return { backend: 'container', name };
 }

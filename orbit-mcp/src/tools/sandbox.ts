@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 import { detectSandboxCapabilities, checkSandboxHealth } from '../sandboxDetector.js';
-import { listSandboxes, createSandbox, removeSandbox, resetSandbox, sandboxName, verifyDinD, type SandboxCreateOptions } from '../sandboxManager.js';
+import { listSandboxes, createSandbox, removeSandbox, resetSandbox, sandboxName } from '../sandboxManager.js';
 import { parseSandboxPolicy, policyToFlags, describeSandboxPolicy } from '../sandboxPolicy.js';
 import { readProjectConfig } from '../utils.js';
 
@@ -31,14 +31,12 @@ export async function manageSandbox(input: SandboxInput) {
     case 'create': {
       const config = await readProjectConfig(projectPath);
       const policy = parseSandboxPolicy(config || {});
-      const opts: SandboxCreateOptions = {
-        enableDocker: true,
-        extraFlags: policyToFlags(policy),
-      };
-      const name = await createSandbox(projectName, projectPath, 'test', opts);
+      // Direct sandbox creation: only network flags (hypervisor handles security)
+      const flags = policyToFlags(policy, 'sandbox');
+      const name = await createSandbox(projectName, projectPath, 'test', { extraFlags: flags });
       return {
         name,
-        policy: describeSandboxPolicy(policy),
+        policy: describeSandboxPolicy(policy, 'sandbox'),
         message: `Sandbox ${name} created`,
       };
     }
@@ -46,11 +44,8 @@ export async function manageSandbox(input: SandboxInput) {
     case 'reset': {
       const config = await readProjectConfig(projectPath);
       const policy = parseSandboxPolicy(config || {});
-      const opts: SandboxCreateOptions = {
-        enableDocker: true,
-        extraFlags: policyToFlags(policy),
-      };
-      const name = await resetSandbox(projectName, projectPath, 'test', opts);
+      const flags = policyToFlags(policy, 'sandbox');
+      const name = await resetSandbox(projectName, projectPath, 'test', { extraFlags: flags });
       return { name, message: `Sandbox ${name} reset (destroyed + recreated)` };
     }
 
