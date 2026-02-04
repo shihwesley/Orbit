@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { getProjectState, getRecentAuditLog } from '../stateDb.js';
 import { checkDocker, getRunningContainers } from '../dockerManager.js';
 import { readProjectConfig } from '../utils.js';
+import { detectSandboxCapabilities, type SandboxCapabilities } from '../sandboxDetector.js';
 
 export const statusSchema = z.object({
   project_path: z.string().optional().describe('Project path (defaults to current working directory)'),
@@ -35,6 +36,7 @@ export interface StatusResult {
       status: string;
     }>;
   };
+  sandbox: SandboxCapabilities;
   recent_activity: Array<{
     timestamp: string;
     command: string;
@@ -56,8 +58,11 @@ export async function getStatus(input: StatusInput): Promise<StatusResult> {
   const state = getProjectState(projectPath);
   const auditLog = getRecentAuditLog(projectPath, 5);
 
-  // Get Docker status asynchronously
-  const dockerStatus = await checkDocker();
+  // Get Docker status and sandbox capabilities in parallel
+  const [dockerStatus, sandboxCaps] = await Promise.all([
+    checkDocker(),
+    detectSandboxCapabilities(),
+  ]);
   const containers = dockerStatus.running ? await getRunningContainers() : [];
 
   // Parse sidecars
@@ -92,6 +97,7 @@ export async function getStatus(input: StatusInput): Promise<StatusResult> {
         status: c.status,
       })),
     },
+    sandbox: sandboxCaps,
     recent_activity: auditLog.map(entry => ({
       timestamp: entry.timestamp,
       command: entry.command,
