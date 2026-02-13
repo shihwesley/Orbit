@@ -1,31 +1,61 @@
 # Orbit
 
-**Orbit** is an ambient development environment management system designed for "vibe coders." It provides automatic, task-aware environment switching between Development, Testing, Staging, and Production, ensuring your workspace "just works" without manual intervention.
+[![npm version](https://img.shields.io/npm/v/@shihwesley/orbit)](https://www.npmjs.com/package/@shihwesley/orbit)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 
-Orbit Uses a **hybrid architecture**:
+Auto-managed dev/test/staging environments for Claude Code. Orbit watches what you're doing and switches your environment to match — no manual Docker commands, no config juggling.
 
-- **MCP Server**: A background daemon that monitors your current tasks and auto-manages Docker containers and sidecars.
-- **Claude Skill**: Provides explicit `/orbit` commands for human-in-the-loop control.
+```
+$ /orbit status
 
-## 🚀 Key Features
+  Project:  my-api (node)
+  Env:      test
+  Backend:  Docker Sandbox (microVM)
+  Network:  deny-all
+  Sidecars: postgres (running), redis (running)
 
-- **Ambient Switching**: Automatically move between local dev and Docker-based test/staging environments based on your current goal.
-- **Lazy Sidecars**: Declare dependencies like PostgreSQL or Redis in `.orbit/config.json`, and Orbit starts them only when needed.
-- **Fresh-Room Testing**: Run test suites in disposable, fresh Docker containers to ensure isolated verification.
-- **High-Fidelity Staging**: Local production-mimic containers for final verification before manual deployment.
+  Recent:
+    14:02  Switched to test (task: "run unit tests")
+    14:01  Started sidecar postgres
+    14:01  Started sidecar redis
+```
 
-## 🛠 Prerequisites
+## Table of Contents
 
-- **macOS** (Optimized for Mac systems)
-- **Node.js**: >= 20.0.0
-- **Docker**: Required for `test` and `staging` environments.
-- **Claude Code CLI**: The primary interface for Orbit.
+- [How It Works](#how-it-works)
+- [Features](#features)
+- [Install](#install)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+- [Sidecars](#sidecars)
+- [Docker Sandbox Integration](#docker-sandbox-integration)
+- [Sandbox Configuration](#sandbox-configuration)
+- [Updating](#updating)
+- [Contributing](#contributing)
+- [License](#license)
 
-## 📦 Installation
+## How It Works
 
-### Claude Code Plugin (Recommended)
+Orbit has two halves:
 
-Install from the shihwesley-plugins marketplace:
+- **MCP Server** — background daemon that monitors your Claude Code tasks, classifies them by environment (using Haiku), and spins up the right Docker containers automatically.
+- **Skill** — `/orbit` slash commands for when you want direct control.
+
+When you start writing tests, Orbit moves you to an isolated test container. When you're back to coding, it drops you into local dev. No prompts, no switching.
+
+## Features
+
+- **Ambient switching** — moves between local dev and Docker-based test/staging based on your current task
+- **Lazy sidecars** — declares PostgreSQL, Redis, etc. in config; starts them only when the environment needs them
+- **Clean-room testing** — runs tests in disposable Docker containers for real isolation
+- **MicroVM sandboxes** — uses Docker Sandboxes (hypervisor-backed) when available, falls back to hardened containers
+- **Network policies** — per-project allow/deny lists control what containers can reach
+- **Multi-runtime** — supports Node.js, Python, Go, and Rust projects
+
+## Install
+
+### Claude Code Plugin (recommended)
 
 ```bash
 /plugin marketplace add shihwesley/shihwesley-plugins
@@ -34,110 +64,88 @@ Install from the shihwesley-plugins marketplace:
 
 Restart Claude Code to load the MCP server and hooks.
 
-### NPM (Alternative)
+### npm
 
 ```bash
 npm install -g @shihwesley/orbit
 orbit setup
 ```
 
-This creates `~/.orbit/`, initializes the database, and registers the MCP server.
+Creates `~/.orbit/`, initializes the database, and registers the MCP server.
 
-## 🏁 Getting Started
+### Requirements
 
-Once installed, onboard any project in `~/`:
+- macOS (primary target)
+- Node.js >= 20
+- Docker Desktop (for test and staging environments)
+- Claude Code CLI
 
-1. **Navigate to your project**:
+## Quick Start
 
-    ```bash
-    cd ~/my-cool-project
-    ```
+```bash
+# Navigate to your project
+cd ~/my-cool-project
 
-2. **Initialize Orbit**:
+# Initialize — auto-detects project type, creates .orbit/config.json
+/orbit init
 
-    ```bash
-    /orbit init
-    ```
+# That's it. Orbit is now watching your tasks.
+# To manually switch environments:
+/orbit switch test
+```
 
-    *Orbit will auto-detect your project type (Node, Python, Go, Rust) and create a `.orbit/config.json` file.*
+Orbit detects your project type (Node, Python, Go, Rust) and writes a `.orbit/config.json` with sensible defaults.
 
-## 🕹 Usage Examples
+## Commands
 
-Orbit is designed to be ambient, but you can explicitly control it via these **integrated slash commands**:
+| Command | What it does |
+|---------|-------------|
+| `/orbit status` | Current environment, sidecars, sandbox backend, recent activity |
+| `/orbit switch <env>` | Switch to `dev`, `test`, or `staging` |
+| `/orbit sidecars list` | Show declared sidecars and their state |
+| `/orbit sidecars start <name>` | Start a specific sidecar |
+| `/orbit sidecars stop <name>` | Stop a specific sidecar |
+| `orbit_sandbox status` | Check sandbox capabilities and running instances |
+| `orbit_sandbox create` | Create a sandbox for the current project |
+| `orbit_sandbox reset` | Destroy and recreate (fast reset) |
+| `orbit_sandbox remove` | Tear down the sandbox |
 
-### Check Status
+## Sidecars
 
-`/orbit status`
-
-### Switch Environments
-
-`/orbit switch <env>`
-
-- `dev`: Local development.
-- `test`: Isolated test suite.
-- `staging`: Production-mimic container.
-
-### Manage Sidecars
-
-`/orbit sidecars [list|start|stop <name>]`
-
-## ⚓️ Sidecar Management
-
-Declare sidecars in your project's `.orbit/config.json`:
+Declare dependencies in `.orbit/config.json`:
 
 ```json
 {
+  "type": "node",
   "sidecars": ["postgres", "redis"]
 }
 ```
 
-Orbit will lazy-load these containers whenever you are in the `test` or `staging` environment.
+Orbit lazy-loads these containers when you enter `test` or `staging`. They stop when you switch back to `dev`.
 
-## 🔄 Updating Orbit
+## Docker Sandbox Integration
 
-To update the system and the MCP server:
+Orbit integrates with [Docker Sandboxes](https://www.docker.com/blog/docker-sandboxes-for-coding-agents/) — microVM-based isolation built for coding agents. Each sandbox gets its own kernel via a hypervisor, so agents can run arbitrary code without touching the host.
 
-1. **Update the global package**:
+| Environment | Isolation | Why |
+|-------------|-----------|-----|
+| dev | Local folder | You're driving, no isolation needed |
+| test | MicroVM (Docker Sandbox) | Agents run arbitrary code — hypervisor isolation |
+| staging | Containers (docker-compose) | Must mirror production infrastructure |
+| prod | Cloud (Vercel, Railway) | Real deployment |
 
-    ```bash
-    npm install -g @shihwesley/orbit@latest
-    ```
+When you switch to `test`, Orbit:
 
-2. **Re-run setup** to apply configuration updates:
+1. Detects if Docker Sandboxes are available
+2. Creates a microVM with only your project workspace mounted
+3. Applies network policies from `.orbit/config.json`
+4. Falls back to hardened containers (cap_drop ALL, read-only rootfs, no-new-privileges) on Linux or older Docker Desktop
 
-    ```bash
-    orbit setup
-    ```
+Agents can `docker build` and `docker run` inside the sandbox — they hit an isolated Docker daemon, never the host.
 
-3. **Restart your Claude session** to re-initialize the MCP server.
+## Sandbox Configuration
 
-## 🔒 Docker Sandbox Integration (MicroVM Isolation)
-
-Orbit now integrates with [Docker Sandboxes](https://www.docker.com/blog/docker-sandboxes-for-coding-agents/) — Docker's microVM-based isolation layer purpose-built for coding agents. This follows Docker's official recommendation for running AI agents like Claude Code, Codex CLI, and Gemini CLI safely, without constant permission prompts.
-
-### Why MicroVMs?
-
-Standard containers share the host kernel. When an agent installs packages, modifies system configs, or runs Docker commands inside a container, the isolation boundary is thinner than you'd want for untrusted execution. Docker Sandboxes solve this with **hypervisor-backed microVMs** — each agent gets a dedicated VM with its own kernel, so the host machine is protected at the hardware level.
-
-### How Orbit Uses Sandboxes
-
-| Environment | Isolation | Rationale |
-|-------------|-----------|-----------|
-| **dev** | Local folder | No isolation needed — you're driving |
-| **test** | MicroVM (Docker Sandbox) | Agents run arbitrary code. Hypervisor isolation for untrusted execution |
-| **staging** | Containers (docker-compose) | Must mirror production infrastructure. MicroVM would mask container-specific bugs |
-| **prod** | Cloud platform | Real deployment (Vercel, Railway, AWS) |
-
-When you switch to `test`, Orbit automatically:
-
-1. **Detects** if Docker Sandboxes are available (`docker sandbox` CLI)
-2. **Creates** a microVM with only your project workspace mounted
-3. **Applies** per-project network policies (allow/deny lists from `.orbit/config.json`)
-4. **Falls back** to hardened containers (cap_drop, read-only rootfs, no-new-privileges) on Linux or older Docker Desktop
-
-### Sandbox Configuration
-
-Add a `sandbox` key to your `.orbit/config.json` to control network isolation:
+Control network isolation per-project in `.orbit/config.json`:
 
 ```json
 {
@@ -152,42 +160,42 @@ Add a `sandbox` key to your `.orbit/config.json` to control network isolation:
 }
 ```
 
-Network modes:
-- **`deny-all`** (default) — No outbound network. Maximum security.
-- **`allow`** — Only listed domains are reachable.
-- **`open`** — Full network with optional deny list.
+| Mode | Behavior |
+|------|----------|
+| `deny-all` (default) | No outbound network |
+| `allow` | Only listed domains reachable |
+| `open` | Full network, optional deny list |
 
-### Key Capabilities
+> Docker Sandboxes require Docker Desktop with sandbox support (macOS/Windows). Linux uses hardened containers automatically.
 
-- **Safe Docker access**: Agents can `docker build` and `docker run` inside the sandbox — they hit an isolated Docker daemon, never the host.
-- **Instant reset**: If an agent goes off the rails, destroy and recreate the sandbox in seconds.
-- **One sandbox, many agents**: Works with Claude Code, Copilot CLI, Codex CLI, Gemini CLI, and Kiro.
-- **Automatic detection**: Orbit checks for sandbox support at runtime and falls back gracefully.
+## Updating
 
-### Direct Sandbox Management
+**Plugin:**
 
-Use the `orbit_sandbox` MCP tool for direct control:
+Updates arrive through the marketplace. Run `/plugin marketplace update` to check.
 
-- `orbit_sandbox status` — Check sandbox capabilities and list running sandboxes
-- `orbit_sandbox create` — Create a sandbox for the current project
-- `orbit_sandbox reset` — Destroy and recreate (fast reset)
-- `orbit_sandbox remove` — Tear down the sandbox
-- `orbit_sandbox health` — Verify the sandbox runtime works
+**npm:**
 
-> **Note**: Docker Sandboxes require Docker Desktop with sandbox support (macOS/Windows). Linux environments automatically use hardened containers as a fallback.
+```bash
+npm install -g @shihwesley/orbit@latest
+orbit setup
+```
 
-## 📂 Project Structure
+Restart Claude Code after updating.
 
-- `orbit-mcp/`: TypeScript source for the MCP server.
-  - `src/sandboxDetector.ts`: Sandbox capability detection and health checks.
-  - `src/sandboxManager.ts`: Sandbox lifecycle (create, exec, stop, reset, remove).
-  - `src/sandboxPolicy.ts`: Network isolation and security policy engine.
-  - `src/containerFallback.ts`: Hardened container fallback for non-sandbox environments.
-  - `src/tools/sandbox.ts`: MCP tool for direct sandbox management.
-- `scripts/`: Implementation logic for installation, detection, and environment management.
-- `docker/`: Dockerfiles and compose templates for various runtimes.
-- `config/`: Global configuration schemas and default settings.
+## Contributing
 
----
+Bug reports and PRs welcome at [github.com/shihwesley/Orbit](https://github.com/shihwesley/Orbit).
 
-*Focus on the vibe, let Orbit handle the infra.*
+For development:
+
+```bash
+git clone https://github.com/shihwesley/Orbit.git
+cd Orbit/orbit-mcp
+npm install
+npm run dev
+```
+
+## License
+
+[MIT](LICENSE)
