@@ -55,6 +55,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Docker = sandbox** - containers are disposable clean rooms
 - **Vercel + Railway first** - vibe-coder friendly cloud providers
 
+## Codebase Overview
+
+Claude Code plugin with hybrid MCP Server (TypeScript) + Claude Skill + Bash scripts managing Docker-based dev/test/staging environments. 6 MCP tools, 11 shell scripts, 4 Dockerfiles, 6 sidecar services. Plugin-first distribution via shihwesley-plugins marketplace.
+
+**Stack**: TypeScript, Node.js, Bash, Docker/Compose, SQLite, Zod, Commander.js
+**Merkle root**: `1232a18d2a73`
+
+For detailed architecture, see [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md).
+
 ## When Resuming
 
 Read `PLAN.md` first - it has the complete context, state machine diagram, and detailed specs for each phase.

@@ -1,0 +1,921 @@
+{
+  "root": "/Users/quartershots/Source/Orbit",
+  "files": [
+    {
+      "path": ".claude/settings.json",
+      "tokens": 116,
+      "size_bytes": 406,
+      "hash": "07d5217df702"
+    },
+    {
+      "path": ".claude-plugin/plugin.json",
+      "tokens": 196,
+      "size_bytes": 675,
+      "hash": "436585b5841f"
+    },
+    {
+      "path": ".orbit/config.json",
+      "tokens": 40,
+      "size_bytes": 124,
+      "hash": "51079ca0df07"
+    },
+    {
+      "path": "bin/orbit.js",
+      "tokens": 639,
+      "size_bytes": 2681,
+      "hash": "863df75d15b3"
+    },
+    {
+      "path": "config/config.json",
+      "tokens": 283,
+      "size_bytes": 953,
+      "hash": "80137efd752f"
+    },
+    {
+      "path": "config/mcp-config.json",
+      "tokens": 37,
+      "size_bytes": 106,
+      "hash": "5af548d046aa"
+    },
+    {
+      "path": "config/schema.sql",
+      "tokens": 157,
+      "size_bytes": 761,
+      "hash": "3f964ad136d8"
+    },
+    {
+      "path": "docker/docker-compose.yml",
+      "tokens": 1380,
+      "size_bytes": 4902,
+      "hash": "d8940826ea4b"
+    },
+    {
+      "path": "docker/go.dockerfile",
+      "tokens": 123,
+      "size_bytes": 454,
+      "hash": "c18eec0a047b"
+    },
+    {
+      "path": "docker/node.dockerfile",
+      "tokens": 190,
+      "size_bytes": 730,
+      "hash": "9be7a3d07c07"
+    },
+    {
+      "path": "docker/python.dockerfile",
+      "tokens": 242,
+      "size_bytes": 910,
+      "hash": "8450ec5f480f"
+    },
+    {
+      "path": "docker/rust.dockerfile",
+      "tokens": 183,
+      "size_bytes": 674,
+      "hash": "691d29ff8511"
+    },
+    {
+      "path": "docs/.cartographer.json",
+      "tokens": 5864,
+      "size_bytes": 18546,
+      "hash": "b8f2cdd0aa2b"
+    },
+    {
+      "path": "docs/.mercator.json",
+      "tokens": 0,
+      "size_bytes": 0,
+      "hash": "e3b0c44298fc"
+    },
+    {
+      "path": "docs/CODEBASE_MAP.md",
+      "tokens": 2905,
+      "size_bytes": 11154,
+      "hash": "f6b3e722329f"
+    },
+    {
+      "path": "docs/findings.md",
+      "tokens": 1439,
+      "size_bytes": 7957,
+      "hash": "7c8b2839c92d"
+    },
+    {
+      "path": "docs/IMPLEMENTATION_PLAN.md",
+      "tokens": 947,
+      "size_bytes": 3810,
+      "hash": "077027b6efdf"
+    },
+    {
+      "path": "docs/PLAN.md",
+      "tokens": 3026,
+      "size_bytes": 11829,
+      "hash": "8e21339c1d52"
+    },
+    {
+      "path": "docs/sandbox-upgrade-findings.md",
+      "tokens": 980,
+      "size_bytes": 4658,
+      "hash": "b82464e764ed"
+    },
+    {
+      "path": "docs/sandbox-upgrade-progress.md",
+      "tokens": 783,
+      "size_bytes": 3048,
+      "hash": "221a686f7b86"
+    },
+    {
+      "path": "docs/TASK.md",
+      "tokens": 343,
+      "size_bytes": 1251,
+      "hash": "9a34914e7d05"
+    },
+    {
+      "path": "hooks/hooks.json",
+      "tokens": 128,
+      "size_bytes": 462,
+      "hash": "e9a840dd3cd7"
+    },
+    {
+      "path": "hooks/orbit-session-start.sh",
+      "tokens": 363,
+      "size_bytes": 1328,
+      "hash": "bbcca64dbf4d"
+    },
+    {
+      "path": "hooks/orbit-stop.sh",
+      "tokens": 548,
+      "size_bytes": 1933,
+      "hash": "d73b4350e266"
+    },
+    {
+      "path": "orbit-mcp/src/tools/getState.ts",
+      "tokens": 541,
+      "size_bytes": 2413,
+      "hash": "61a81d67f414"
+    },
+    {
+      "path": "orbit-mcp/src/tools/sandbox.ts",
+      "tokens": 540,
+      "size_bytes": 2387,
+      "hash": "aaba42272ea4"
+    },
+    {
+      "path": "orbit-mcp/src/tools/sidecars.ts",
+      "tokens": 930,
+      "size_bytes": 3801,
+      "hash": "c3f39e3083d9"
+    },
+    {
+      "path": "orbit-mcp/src/tools/status.ts",
+      "tokens": 652,
+      "size_bytes": 2903,
+      "hash": "2b027ec2d897"
+    },
+    {
+      "path": "orbit-mcp/src/tools/stopAll.ts",
+      "tokens": 351,
+      "size_bytes": 1490,
+      "hash": "8f48ef6e2005"
+    },
+    {
+      "path": "orbit-mcp/src/tools/switchEnv.ts",
+      "tokens": 891,
+      "size_bytes": 3788,
+      "hash": "46a37d6779db"
+    },
+    {
+      "path": "orbit-mcp/src/config.ts",
+      "tokens": 126,
+      "size_bytes": 489,
+      "hash": "bdb489901df0"
+    },
+    {
+      "path": "orbit-mcp/src/containerFallback.ts",
+      "tokens": 1020,
+      "size_bytes": 4269,
+      "hash": "c3fa293c4d78"
+    },
+    {
+      "path": "orbit-mcp/src/dockerManager.ts",
+      "tokens": 941,
+      "size_bytes": 3822,
+      "hash": "68e9ff113a74"
+    },
+    {
+      "path": "orbit-mcp/src/index.ts",
+      "tokens": 1439,
+      "size_bytes": 6244,
+      "hash": "0d9f3532a527"
+    },
+    {
+      "path": "orbit-mcp/src/sandboxDetector.ts",
+      "tokens": 1060,
+      "size_bytes": 4714,
+      "hash": "ea2ce68e1262"
+    },
+    {
+      "path": "orbit-mcp/src/sandboxManager.ts",
+      "tokens": 1741,
+      "size_bytes": 7340,
+      "hash": "cd506d5f4a8a"
+    },
+    {
+      "path": "orbit-mcp/src/sandboxPolicy.ts",
+      "tokens": 1265,
+      "size_bytes": 5471,
+      "hash": "f6f48ee46e88"
+    },
+    {
+      "path": "orbit-mcp/src/stateDb.ts",
+      "tokens": 662,
+      "size_bytes": 2638,
+      "hash": "e20f4299b853"
+    },
+    {
+      "path": "orbit-mcp/src/utils.ts",
+      "tokens": 204,
+      "size_bytes": 912,
+      "hash": "281d5778d069"
+    },
+    {
+      "path": "orbit-mcp/.gitignore",
+      "tokens": 12,
+      "size_bytes": 36,
+      "hash": "d15f232be465"
+    },
+    {
+      "path": "orbit-mcp/package.json",
+      "tokens": 253,
+      "size_bytes": 709,
+      "hash": "18b8ed624eb6"
+    },
+    {
+      "path": "orbit-mcp/tsconfig.json",
+      "tokens": 135,
+      "size_bytes": 450,
+      "hash": "4f60a9b60f06"
+    },
+    {
+      "path": "scripts/check-docker.sh",
+      "tokens": 209,
+      "size_bytes": 853,
+      "hash": "0a246afd3163"
+    },
+    {
+      "path": "scripts/check-parity.sh",
+      "tokens": 686,
+      "size_bytes": 2540,
+      "hash": "cb2d49bb51b4"
+    },
+    {
+      "path": "scripts/detect-project.sh",
+      "tokens": 402,
+      "size_bytes": 1334,
+      "hash": "3cf46249e2f0"
+    },
+    {
+      "path": "scripts/detect-workspace.sh",
+      "tokens": 897,
+      "size_bytes": 3494,
+      "hash": "2fdb4ac96c7a"
+    },
+    {
+      "path": "scripts/install.sh",
+      "tokens": 1795,
+      "size_bytes": 6702,
+      "hash": "8c7695245790"
+    },
+    {
+      "path": "scripts/orbit-init.sh",
+      "tokens": 958,
+      "size_bytes": 3578,
+      "hash": "4f56bf054754"
+    },
+    {
+      "path": "scripts/orbit-sidecars.sh",
+      "tokens": 338,
+      "size_bytes": 1197,
+      "hash": "4c12933ed4bb"
+    },
+    {
+      "path": "scripts/orbit-staging.sh",
+      "tokens": 486,
+      "size_bytes": 1885,
+      "hash": "65b4f54b4db7"
+    },
+    {
+      "path": "scripts/orbit-status.sh",
+      "tokens": 470,
+      "size_bytes": 1781,
+      "hash": "1f63655dced2"
+    },
+    {
+      "path": "scripts/orbit-test.sh",
+      "tokens": 659,
+      "size_bytes": 2430,
+      "hash": "df5b42929759"
+    },
+    {
+      "path": "scripts/orbit-utils.sh",
+      "tokens": 662,
+      "size_bytes": 2451,
+      "hash": "415731fc55d7"
+    },
+    {
+      "path": "skills/orbit/SKILL.md",
+      "tokens": 2645,
+      "size_bytes": 10025,
+      "hash": "f4b0797218e4"
+    },
+    {
+      "path": "templates/ci.yml",
+      "tokens": 540,
+      "size_bytes": 1863,
+      "hash": "3ff3040d9815"
+    },
+    {
+      "path": "templates/railway-deploy.yml",
+      "tokens": 160,
+      "size_bytes": 604,
+      "hash": "25c2050aafb7"
+    },
+    {
+      "path": "templates/vercel-deploy.yml",
+      "tokens": 264,
+      "size_bytes": 948,
+      "hash": "12429fe8df2a"
+    },
+    {
+      "path": ".gitignore",
+      "tokens": 45,
+      "size_bytes": 145,
+      "hash": "caa2ecf05466"
+    },
+    {
+      "path": ".mcp.json",
+      "tokens": 51,
+      "size_bytes": 157,
+      "hash": "d30831e348d6"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "tokens": 292,
+      "size_bytes": 1148,
+      "hash": "0459c2602b30"
+    },
+    {
+      "path": "CLAUDE.md",
+      "tokens": 663,
+      "size_bytes": 2856,
+      "hash": "44985b5ae2cb"
+    },
+    {
+      "path": "gemini-log.md",
+      "tokens": 848,
+      "size_bytes": 3657,
+      "hash": "8885079a3fb3"
+    },
+    {
+      "path": "LICENSE",
+      "tokens": 220,
+      "size_bytes": 1068,
+      "hash": "402628063a58"
+    },
+    {
+      "path": "package.json",
+      "tokens": 395,
+      "size_bytes": 1325,
+      "hash": "7b5e9cb794f7"
+    },
+    {
+      "path": "README.md",
+      "tokens": 1603,
+      "size_bytes": 6944,
+      "hash": "040e360c0f04"
+    }
+  ],
+  "directories": [
+    ".claude",
+    ".claude-plugin",
+    ".orbit",
+    "bin",
+    "config",
+    "docker",
+    "docs",
+    "hooks",
+    "orbit-mcp",
+    "orbit-mcp/src",
+    "orbit-mcp/src/tools",
+    "scripts",
+    "skills",
+    "skills/orbit",
+    "templates"
+  ],
+  "total_tokens": 48963,
+  "total_files": 65,
+  "skipped": [],
+  "merkle": {
+    "root_hash": "666a60854d8d",
+    "tree": {
+      ".claude/settings.json": {
+        "hash": "07d5217df702",
+        "tokens": 116,
+        "type": "file"
+      },
+      ".claude": {
+        "hash": "6839e5a8ef4d",
+        "children": [
+          ".claude/settings.json"
+        ],
+        "type": "dir"
+      },
+      ".claude-plugin/plugin.json": {
+        "hash": "436585b5841f",
+        "tokens": 196,
+        "type": "file"
+      },
+      ".claude-plugin": {
+        "hash": "f20d97e485e4",
+        "children": [
+          ".claude-plugin/plugin.json"
+        ],
+        "type": "dir"
+      },
+      ".orbit/config.json": {
+        "hash": "51079ca0df07",
+        "tokens": 40,
+        "type": "file"
+      },
+      ".orbit": {
+        "hash": "016f0a5887be",
+        "children": [
+          ".orbit/config.json"
+        ],
+        "type": "dir"
+      },
+      "bin/orbit.js": {
+        "hash": "863df75d15b3",
+        "tokens": 639,
+        "type": "file"
+      },
+      "bin": {
+        "hash": "17503f775687",
+        "children": [
+          "bin/orbit.js"
+        ],
+        "type": "dir"
+      },
+      "config/config.json": {
+        "hash": "80137efd752f",
+        "tokens": 283,
+        "type": "file"
+      },
+      "config/mcp-config.json": {
+        "hash": "5af548d046aa",
+        "tokens": 37,
+        "type": "file"
+      },
+      "config/schema.sql": {
+        "hash": "3f964ad136d8",
+        "tokens": 157,
+        "type": "file"
+      },
+      "config": {
+        "hash": "983a9bff3754",
+        "children": [
+          "config/config.json",
+          "config/mcp-config.json",
+          "config/schema.sql"
+        ],
+        "type": "dir"
+      },
+      "docker/docker-compose.yml": {
+        "hash": "d8940826ea4b",
+        "tokens": 1380,
+        "type": "file"
+      },
+      "docker/go.dockerfile": {
+        "hash": "c18eec0a047b",
+        "tokens": 123,
+        "type": "file"
+      },
+      "docker/node.dockerfile": {
+        "hash": "9be7a3d07c07",
+        "tokens": 190,
+        "type": "file"
+      },
+      "docker/python.dockerfile": {
+        "hash": "8450ec5f480f",
+        "tokens": 242,
+        "type": "file"
+      },
+      "docker/rust.dockerfile": {
+        "hash": "691d29ff8511",
+        "tokens": 183,
+        "type": "file"
+      },
+      "docker": {
+        "hash": "814ffbf88b0f",
+        "children": [
+          "docker/docker-compose.yml",
+          "docker/go.dockerfile",
+          "docker/node.dockerfile",
+          "docker/python.dockerfile",
+          "docker/rust.dockerfile"
+        ],
+        "type": "dir"
+      },
+      "docs/.cartographer.json": {
+        "hash": "b8f2cdd0aa2b",
+        "tokens": 5864,
+        "type": "file"
+      },
+      "docs/.mercator.json": {
+        "hash": "e3b0c44298fc",
+        "tokens": 0,
+        "type": "file"
+      },
+      "docs/CODEBASE_MAP.md": {
+        "hash": "f6b3e722329f",
+        "tokens": 2905,
+        "type": "file"
+      },
+      "docs/findings.md": {
+        "hash": "7c8b2839c92d",
+        "tokens": 1439,
+        "type": "file"
+      },
+      "docs/IMPLEMENTATION_PLAN.md": {
+        "hash": "077027b6efdf",
+        "tokens": 947,
+        "type": "file"
+      },
+      "docs/PLAN.md": {
+        "hash": "8e21339c1d52",
+        "tokens": 3026,
+        "type": "file"
+      },
+      "docs/sandbox-upgrade-findings.md": {
+        "hash": "b82464e764ed",
+        "tokens": 980,
+        "type": "file"
+      },
+      "docs/sandbox-upgrade-progress.md": {
+        "hash": "221a686f7b86",
+        "tokens": 783,
+        "type": "file"
+      },
+      "docs/TASK.md": {
+        "hash": "9a34914e7d05",
+        "tokens": 343,
+        "type": "file"
+      },
+      "docs": {
+        "hash": "ff877d515e83",
+        "children": [
+          "docs/.cartographer.json",
+          "docs/.mercator.json",
+          "docs/CODEBASE_MAP.md",
+          "docs/findings.md",
+          "docs/IMPLEMENTATION_PLAN.md",
+          "docs/PLAN.md",
+          "docs/sandbox-upgrade-findings.md",
+          "docs/sandbox-upgrade-progress.md",
+          "docs/TASK.md"
+        ],
+        "type": "dir"
+      },
+      "hooks/hooks.json": {
+        "hash": "e9a840dd3cd7",
+        "tokens": 128,
+        "type": "file"
+      },
+      "hooks/orbit-session-start.sh": {
+        "hash": "bbcca64dbf4d",
+        "tokens": 363,
+        "type": "file"
+      },
+      "hooks/orbit-stop.sh": {
+        "hash": "d73b4350e266",
+        "tokens": 548,
+        "type": "file"
+      },
+      "hooks": {
+        "hash": "fce3e5e25d55",
+        "children": [
+          "hooks/hooks.json",
+          "hooks/orbit-session-start.sh",
+          "hooks/orbit-stop.sh"
+        ],
+        "type": "dir"
+      },
+      "orbit-mcp/src/tools/getState.ts": {
+        "hash": "61a81d67f414",
+        "tokens": 541,
+        "type": "file"
+      },
+      "orbit-mcp/src/tools/sandbox.ts": {
+        "hash": "aaba42272ea4",
+        "tokens": 540,
+        "type": "file"
+      },
+      "orbit-mcp/src/tools/sidecars.ts": {
+        "hash": "c3f39e3083d9",
+        "tokens": 930,
+        "type": "file"
+      },
+      "orbit-mcp/src/tools/status.ts": {
+        "hash": "2b027ec2d897",
+        "tokens": 652,
+        "type": "file"
+      },
+      "orbit-mcp/src/tools/stopAll.ts": {
+        "hash": "8f48ef6e2005",
+        "tokens": 351,
+        "type": "file"
+      },
+      "orbit-mcp/src/tools/switchEnv.ts": {
+        "hash": "46a37d6779db",
+        "tokens": 891,
+        "type": "file"
+      },
+      "orbit-mcp/src/tools": {
+        "hash": "b2df99181ec0",
+        "children": [
+          "orbit-mcp/src/tools/getState.ts",
+          "orbit-mcp/src/tools/sandbox.ts",
+          "orbit-mcp/src/tools/sidecars.ts",
+          "orbit-mcp/src/tools/status.ts",
+          "orbit-mcp/src/tools/stopAll.ts",
+          "orbit-mcp/src/tools/switchEnv.ts"
+        ],
+        "type": "dir"
+      },
+      "orbit-mcp/src/config.ts": {
+        "hash": "bdb489901df0",
+        "tokens": 126,
+        "type": "file"
+      },
+      "orbit-mcp/src/containerFallback.ts": {
+        "hash": "c3fa293c4d78",
+        "tokens": 1020,
+        "type": "file"
+      },
+      "orbit-mcp/src/dockerManager.ts": {
+        "hash": "68e9ff113a74",
+        "tokens": 941,
+        "type": "file"
+      },
+      "orbit-mcp/src/index.ts": {
+        "hash": "0d9f3532a527",
+        "tokens": 1439,
+        "type": "file"
+      },
+      "orbit-mcp/src/sandboxDetector.ts": {
+        "hash": "ea2ce68e1262",
+        "tokens": 1060,
+        "type": "file"
+      },
+      "orbit-mcp/src/sandboxManager.ts": {
+        "hash": "cd506d5f4a8a",
+        "tokens": 1741,
+        "type": "file"
+      },
+      "orbit-mcp/src/sandboxPolicy.ts": {
+        "hash": "f6f48ee46e88",
+        "tokens": 1265,
+        "type": "file"
+      },
+      "orbit-mcp/src/stateDb.ts": {
+        "hash": "e20f4299b853",
+        "tokens": 662,
+        "type": "file"
+      },
+      "orbit-mcp/src/utils.ts": {
+        "hash": "281d5778d069",
+        "tokens": 204,
+        "type": "file"
+      },
+      "orbit-mcp/src": {
+        "hash": "e56085e217f4",
+        "children": [
+          "orbit-mcp/src/tools",
+          "orbit-mcp/src/config.ts",
+          "orbit-mcp/src/containerFallback.ts",
+          "orbit-mcp/src/dockerManager.ts",
+          "orbit-mcp/src/index.ts",
+          "orbit-mcp/src/sandboxDetector.ts",
+          "orbit-mcp/src/sandboxManager.ts",
+          "orbit-mcp/src/sandboxPolicy.ts",
+          "orbit-mcp/src/stateDb.ts",
+          "orbit-mcp/src/utils.ts"
+        ],
+        "type": "dir"
+      },
+      "orbit-mcp/.gitignore": {
+        "hash": "d15f232be465",
+        "tokens": 12,
+        "type": "file"
+      },
+      "orbit-mcp/package.json": {
+        "hash": "18b8ed624eb6",
+        "tokens": 253,
+        "type": "file"
+      },
+      "orbit-mcp/tsconfig.json": {
+        "hash": "4f60a9b60f06",
+        "tokens": 135,
+        "type": "file"
+      },
+      "orbit-mcp": {
+        "hash": "9fba05f7745a",
+        "children": [
+          "orbit-mcp/src",
+          "orbit-mcp/.gitignore",
+          "orbit-mcp/package.json",
+          "orbit-mcp/tsconfig.json"
+        ],
+        "type": "dir"
+      },
+      "scripts/check-docker.sh": {
+        "hash": "0a246afd3163",
+        "tokens": 209,
+        "type": "file"
+      },
+      "scripts/check-parity.sh": {
+        "hash": "cb2d49bb51b4",
+        "tokens": 686,
+        "type": "file"
+      },
+      "scripts/detect-project.sh": {
+        "hash": "3cf46249e2f0",
+        "tokens": 402,
+        "type": "file"
+      },
+      "scripts/detect-workspace.sh": {
+        "hash": "2fdb4ac96c7a",
+        "tokens": 897,
+        "type": "file"
+      },
+      "scripts/install.sh": {
+        "hash": "8c7695245790",
+        "tokens": 1795,
+        "type": "file"
+      },
+      "scripts/orbit-init.sh": {
+        "hash": "4f56bf054754",
+        "tokens": 958,
+        "type": "file"
+      },
+      "scripts/orbit-sidecars.sh": {
+        "hash": "4c12933ed4bb",
+        "tokens": 338,
+        "type": "file"
+      },
+      "scripts/orbit-staging.sh": {
+        "hash": "65b4f54b4db7",
+        "tokens": 486,
+        "type": "file"
+      },
+      "scripts/orbit-status.sh": {
+        "hash": "1f63655dced2",
+        "tokens": 470,
+        "type": "file"
+      },
+      "scripts/orbit-test.sh": {
+        "hash": "df5b42929759",
+        "tokens": 659,
+        "type": "file"
+      },
+      "scripts/orbit-utils.sh": {
+        "hash": "415731fc55d7",
+        "tokens": 662,
+        "type": "file"
+      },
+      "scripts": {
+        "hash": "fe675521930d",
+        "children": [
+          "scripts/check-docker.sh",
+          "scripts/check-parity.sh",
+          "scripts/detect-project.sh",
+          "scripts/detect-workspace.sh",
+          "scripts/install.sh",
+          "scripts/orbit-init.sh",
+          "scripts/orbit-sidecars.sh",
+          "scripts/orbit-staging.sh",
+          "scripts/orbit-status.sh",
+          "scripts/orbit-test.sh",
+          "scripts/orbit-utils.sh"
+        ],
+        "type": "dir"
+      },
+      "skills/orbit/SKILL.md": {
+        "hash": "f4b0797218e4",
+        "tokens": 2645,
+        "type": "file"
+      },
+      "skills/orbit": {
+        "hash": "c3463a9f13c3",
+        "children": [
+          "skills/orbit/SKILL.md"
+        ],
+        "type": "dir"
+      },
+      "skills": {
+        "hash": "524c04b30615",
+        "children": [
+          "skills/orbit"
+        ],
+        "type": "dir"
+      },
+      "templates/ci.yml": {
+        "hash": "3ff3040d9815",
+        "tokens": 540,
+        "type": "file"
+      },
+      "templates/railway-deploy.yml": {
+        "hash": "25c2050aafb7",
+        "tokens": 160,
+        "type": "file"
+      },
+      "templates/vercel-deploy.yml": {
+        "hash": "12429fe8df2a",
+        "tokens": 264,
+        "type": "file"
+      },
+      "templates": {
+        "hash": "b83811ebc053",
+        "children": [
+          "templates/ci.yml",
+          "templates/railway-deploy.yml",
+          "templates/vercel-deploy.yml"
+        ],
+        "type": "dir"
+      },
+      ".gitignore": {
+        "hash": "caa2ecf05466",
+        "tokens": 45,
+        "type": "file"
+      },
+      ".mcp.json": {
+        "hash": "d30831e348d6",
+        "tokens": 51,
+        "type": "file"
+      },
+      "CHANGELOG.md": {
+        "hash": "0459c2602b30",
+        "tokens": 292,
+        "type": "file"
+      },
+      "CLAUDE.md": {
+        "hash": "44985b5ae2cb",
+        "tokens": 663,
+        "type": "file"
+      },
+      "gemini-log.md": {
+        "hash": "8885079a3fb3",
+        "tokens": 848,
+        "type": "file"
+      },
+      "LICENSE": {
+        "hash": "402628063a58",
+        "tokens": 220,
+        "type": "file"
+      },
+      "package.json": {
+        "hash": "7b5e9cb794f7",
+        "tokens": 395,
+        "type": "file"
+      },
+      "README.md": {
+        "hash": "040e360c0f04",
+        "tokens": 1603,
+        "type": "file"
+      },
+      "/": {
+        "hash": "666a60854d8d",
+        "children": [
+          ".claude",
+          ".claude-plugin",
+          ".orbit",
+          "bin",
+          "config",
+          "docker",
+          "docs",
+          "hooks",
+          "orbit-mcp",
+          "scripts",
+          "skills",
+          "templates",
+          ".gitignore",
+          ".mcp.json",
+          "CHANGELOG.md",
+          "CLAUDE.md",
+          "gemini-log.md",
+          "LICENSE",
+          "package.json",
+          "README.md"
+        ],
+        "type": "dir"
+      }
+    }
+  }
+}

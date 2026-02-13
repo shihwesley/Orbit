@@ -40,22 +40,13 @@ export async function switchEnv(input: SwitchEnvInput): Promise<SwitchEnvResult>
     throw new Error(`Project not initialized at ${projectPath}. Run /orbit init first.`);
   }
 
-  const sidecars: string[] = config.sidecars || [];
-
-  // Get previous state
-  let previousEnv: string | null = null;
-  try {
-    const state = getProjectState(projectPath);
-    previousEnv = state?.current_env || null;
-  } catch {
-    // Ignore
-  }
+  const sidecars: string[] = (config.sidecars as string[]) || [];
+  const previousEnv = getProjectState(projectPath)?.current_env || null;
+  const projectName = projectPath.split('/').pop() || 'unknown';
 
   // Handle environment switch
   let sidecarsStarted: string[] = [];
   let isolation: SwitchEnvResult['isolation'];
-
-  const projectName = projectPath.split('/').pop() || 'unknown';
 
   if (targetEnv === 'dev') {
     // Dev is local — tear down any sandbox or container

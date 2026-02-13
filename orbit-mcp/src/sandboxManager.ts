@@ -6,9 +6,11 @@
  */
 
 import { exec as execCallback } from 'child_process';
+import { unlink } from 'fs/promises';
 import { promisify } from 'util';
 import { detectSandboxCapabilities, type SandboxBackend } from './sandboxDetector.js';
 import { type SandboxPolicy, policyToFlags } from './sandboxPolicy.js';
+import { writeSecurityOverride, DEFAULT_FALLBACK_SECURITY, type FallbackSecurityOptions } from './containerFallback.js';
 import { COMPOSE_FILE } from './config.js';
 
 const exec = promisify(execCallback);
@@ -46,12 +48,10 @@ export async function listSandboxes(): Promise<SandboxInfo[]> {
       .trim()
       .split('\n')
       .filter(line => line.startsWith('orbit-'))
-      .map(line => {
-        const [name, status] = line.split('|');
-        return {
-          name,
-          status: (status?.toLowerCase().includes('running') ? 'running' : 'stopped') as SandboxInfo['status'],
-        };
+      .map((line): SandboxInfo => {
+        const [name, rawStatus] = line.split('|');
+        const status = rawStatus?.toLowerCase().includes('running') ? 'running' : 'stopped';
+        return { name, status };
       });
   } catch {
     return [];
@@ -200,38 +200,41 @@ export async function ensureIsolation(
 ): Promise<{ backend: SandboxBackend; name: string }> {
   const backend = await detectBackend();
 
+  const flags = policy ? policyToFlags(policy, backend) : [];
+
   if (backend === 'sandbox') {
     // MicroVM: only network flags apply. Hypervisor handles security.
-    const networkOnlyFlags = policy ? policyToFlags(policy, 'sandbox') : [];
-    const name = await createSandbox(projectName, projectPath, env, {
-      extraFlags: networkOnlyFlags,
-    });
+    const name = await createSandbox(projectName, projectPath, env, { extraFlags: flags });
     return { backend: 'sandbox', name };
   }
 
-  // Container fallback: apply full hardening overlay
+  // Container fallback: use a compose security override for real enforcement
   const name = sandboxName(projectName, env);
-  const hardeningFlags = policy ? policyToFlags(policy, 'container') : [];
+  const securityOpts: FallbackSecurityOptions = policy
+    ? {
+        readOnlyRoot: policy.containerHardening.readOnlyRoot,
+        dropCaps: policy.containerHardening.dropCapabilities,
+        noNewPrivileges: policy.containerHardening.noNewPrivileges,
+        memoryLimitMb: DEFAULT_FALLBACK_SECURITY.memoryLimitMb,
+        cpuLimit: DEFAULT_FALLBACK_SECURITY.cpuLimit,
+        networkMode: policy.network.mode === 'deny-all' ? 'none' : undefined,
+      }
+    : DEFAULT_FALLBACK_SECURITY;
 
-  // Build the hardened container via compose with security overlay
-  const envVars = {
-    ...process.env,
-    PROJECT_PATH: projectPath,
-    PROJECT_TYPE: projectType,
-  };
-
-  // Start the test container with hardening flags applied via compose run
-  const securityArgs = hardeningFlags.length
-    ? hardeningFlags.map(f => `--label com.orbit.security=${f}`).join(' ')
-    : '';
+  const overridePath = await writeSecurityOverride(projectType, securityOpts);
 
   try {
     await exec(
-      `docker compose -f "${COMPOSE_FILE}" --profile ${projectType} up -d ${securityArgs}`,
-      { env: envVars, timeout: SANDBOX_TIMEOUT },
+      `docker compose -f "${COMPOSE_FILE}" -f "${overridePath}" --profile ${projectType} up -d`,
+      {
+        env: { ...process.env, PROJECT_PATH: projectPath, PROJECT_TYPE: projectType },
+        timeout: SANDBOX_TIMEOUT,
+      },
     );
   } catch {
     // Container may already be running
+  } finally {
+    try { await unlink(overridePath); } catch { /* cleanup best-effort */ }
   }
 
   return { backend: 'container', name };

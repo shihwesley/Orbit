@@ -45,35 +45,30 @@ export interface StatusResult {
   }>;
 }
 
+function parseSidecars(raw: string | undefined): string[] {
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
 export async function getStatus(input: StatusInput): Promise<StatusResult> {
   const projectPath = input.project_path || process.cwd();
   const projectName = projectPath.split('/').pop() || 'unknown';
 
-  // Read project config asynchronously
   const config = await readProjectConfig(projectPath);
   const initialized = !!config;
   const projectType = (config?.type as string) || null;
 
-  // Get state from database
   const state = getProjectState(projectPath);
   const auditLog = getRecentAuditLog(projectPath, 5);
 
-  // Get Docker status and sandbox capabilities in parallel
   const [dockerStatus, sandboxCaps] = await Promise.all([
     checkDocker(),
     detectSandboxCapabilities(),
   ]);
   const containers = dockerStatus.running ? await getRunningContainers() : [];
 
-  // Parse sidecars
-  let sidecarsRunning: string[] = [];
-  if (state?.sidecars_running) {
-    try {
-      sidecarsRunning = JSON.parse(state.sidecars_running);
-    } catch {
-      // Ignore
-    }
-  }
+  // Parse sidecars (stored as JSON string in DB)
+  const sidecarsRunning: string[] = parseSidecars(state?.sidecars_running);
 
   return {
     project: {

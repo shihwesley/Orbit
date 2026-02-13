@@ -182,34 +182,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     const result = await tool.handler(args);
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(result, null, 2),
-        },
-      ],
-    };
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ error: message }),
-        },
-      ],
-      isError: true,
-    };
+    return { content: [{ type: 'text', text: JSON.stringify({ error: message }) }], isError: true };
   }
 });
 
 // Cleanup on exit
-const cleanup = () => {
+function cleanup() {
   closeDb();
   process.exit(0);
-};
+}
 
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
