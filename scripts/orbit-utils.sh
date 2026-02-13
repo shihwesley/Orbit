@@ -2,8 +2,11 @@
 # Orbit Shared Utilities
 # Centralized logic for Docker checks, JSON parsing, and path resolution
 
-ORBIT_ROOT="$HOME/.orbit"
-DB_PATH="$ORBIT_ROOT/state.db"
+# Assets (scripts, docker, config) live in the plugin install location
+ORBIT_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+# Persistent state (state.db, registry.json) lives at ~/.orbit/
+ORBIT_STATE="$HOME/.orbit"
+DB_PATH="$ORBIT_STATE/state.db"
 
 # 1. Error handling
 error() {

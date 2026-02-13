@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "orbit-mcp": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/orbit-mcp/dist/index.js"],
+      "env": {}
+    }
+  }
+}

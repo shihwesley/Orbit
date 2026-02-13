@@ -6,9 +6,7 @@
 set -e
 
 PROJECT_PATH="${1:-.}"
-ORBIT_ROOT="$HOME/.orbit"
-
-# Source utilities
+# Source utilities (sets ORBIT_ROOT for assets, ORBIT_STATE for persistent data)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/orbit-utils.sh"
 

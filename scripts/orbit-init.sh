@@ -6,9 +6,7 @@ set -e
 
 PROJECT_PATH="${1:-.}"
 PROJECT_TYPE="${2:-unknown}"
-ORBIT_ROOT="$HOME/.orbit"
-
-# Source utilities
+# Source utilities (sets ORBIT_ROOT for assets, ORBIT_STATE for persistent data)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/orbit-utils.sh"
 
@@ -16,8 +14,8 @@ source "$SCRIPT_DIR/orbit-utils.sh"
 PROJECT_PATH=$(get_abs_path "$PROJECT_PATH")
 PROJECT_NAME="$(basename "$PROJECT_PATH")"
 
-# Ensure global orbit exists
-[ ! -d "$ORBIT_ROOT" ] && error "~/.orbit not found. Run install.sh first."
+# Ensure persistent state dir exists
+[ ! -d "$ORBIT_STATE" ] && mkdir -p "$ORBIT_STATE"
 
 # Set defaults based on type
 case "$PROJECT_TYPE" in
@@ -45,7 +43,7 @@ EOF
 echo "Created $PROJECT_PATH/.orbit/config.json"
 
 # Update global registry
-REGISTRY="$ORBIT_ROOT/registry.json"
+REGISTRY="$ORBIT_STATE/registry.json"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 echo "Updating registry.json..."

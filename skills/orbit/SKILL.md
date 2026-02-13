@@ -1,6 +1,7 @@
 ---
 name: orbit
-description: Manage dev/test/staging/prod environments for projects
+description: "This skill should be used when the user says '/orbit', '/orbit init', '/orbit status', '/orbit test', '/orbit staging', '/orbit use', '/orbit sidecars', '/orbit logs', '/orbit stop', '/orbit check', '/orbit templates', asks about environment status or switching, wants to run tests in Docker containers, needs to manage dev/test/staging environments, or asks about sidecar services like PostgreSQL or Redis for their project."
+version: 1.2.0
 ---
 
 # Orbit Environment Manager
@@ -87,7 +88,7 @@ Initialize Orbit for current project.
 ### Step 1: Detect type
 
 ```bash
-~/.orbit/scripts/detect-project.sh .
+${CLAUDE_PLUGIN_ROOT}/scripts/detect-project.sh .
 ```
 
 Returns `type|supported` (e.g., `node|yes`).
@@ -115,7 +116,7 @@ Stop here.
 ### Step 3: Initialize
 
 ```bash
-~/.orbit/scripts/orbit-init.sh . <type>
+${CLAUDE_PLUGIN_ROOT}/scripts/orbit-init.sh . <type>
 ```
 
 ### Step 4: Confirm
@@ -142,7 +143,7 @@ Run tests in fresh Docker container.
 ### Execution
 
 ```bash
-~/.orbit/scripts/orbit-test.sh [--fresh] .
+${CLAUDE_PLUGIN_ROOT}/scripts/orbit-test.sh [--fresh] .
 ```
 
 ### What happens
@@ -181,7 +182,7 @@ Call orbit_switch_env with:
 
 ```bash
 # Check Docker
-~/.orbit/scripts/check-docker.sh check || {
+${CLAUDE_PLUGIN_ROOT}/scripts/check-docker.sh check || {
   echo "Docker required for staging environment"
   exit 1
 }
@@ -189,7 +190,7 @@ Call orbit_switch_env with:
 # Start sidecars
 SIDECARS=$(python3 -c "import json; print(' '.join(json.load(open('.orbit/config.json')).get('sidecars', [])))")
 for sidecar in $SIDECARS; do
-  docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-$sidecar up -d
+  docker compose -f ${CLAUDE_PLUGIN_ROOT}/docker/docker-compose.yml --profile sidecar-$sidecar up -d
 done
 
 # Update state
@@ -231,7 +232,7 @@ Call orbit_switch_env with:
 
 ```bash
 # Stop containers (dev is local)
-docker compose -f ~/.orbit/docker/docker-compose.yml down 2>/dev/null || true
+docker compose -f ${CLAUDE_PLUGIN_ROOT}/docker/docker-compose.yml down 2>/dev/null || true
 
 # Update state
 sqlite3 ~/.orbit/state.db "UPDATE project_state SET current_env = 'dev', sidecars_running = '[]', last_activity = datetime('now') WHERE project = '$(pwd)';"
@@ -243,7 +244,7 @@ echo "Switched to dev (local) environment"
 
 ```bash
 # Requires Docker
-~/.orbit/scripts/check-docker.sh check || exit 1
+${CLAUDE_PLUGIN_ROOT}/scripts/check-docker.sh check || exit 1
 
 # Start sidecars
 # ... (same as staging)
@@ -296,13 +297,13 @@ Edit `.orbit/config.json`:
 
 ```bash
 # Start
-docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-<name> up -d
+docker compose -f ${CLAUDE_PLUGIN_ROOT}/docker/docker-compose.yml --profile sidecar-<name> up -d
 
 # Stop
-docker compose -f ~/.orbit/docker/docker-compose.yml --profile sidecar-<name> down
+docker compose -f ${CLAUDE_PLUGIN_ROOT}/docker/docker-compose.yml --profile sidecar-<name> down
 
 # Status
-docker compose -f ~/.orbit/docker/docker-compose.yml ps
+docker compose -f ${CLAUDE_PLUGIN_ROOT}/docker/docker-compose.yml ps
 ```
 
 ---
@@ -359,7 +360,7 @@ Call orbit_stop_all with confirm: true
 ### Without MCP
 
 ```bash
-docker compose -f ~/.orbit/docker/docker-compose.yml down
+docker compose -f ${CLAUDE_PLUGIN_ROOT}/docker/docker-compose.yml down
 
 # Clear sidecar state for all projects
 sqlite3 ~/.orbit/state.db "UPDATE project_state SET sidecars_running = '[]';"
@@ -378,7 +379,7 @@ Check version parity between local toolchain and project requirements.
 ### Execution
 
 ```bash
-~/.orbit/scripts/check-parity.sh .
+${CLAUDE_PLUGIN_ROOT}/scripts/check-parity.sh .
 ```
 
 ### Output
@@ -397,7 +398,7 @@ Check version parity between local toolchain and project requirements.
 ### If mismatch detected
 
 ```
-⚠️ Version parity warning:
+Version parity warning:
 Project expects Node 20, you have Node 18
 Consider updating or use /orbit test for consistent environment
 ```
@@ -420,14 +421,14 @@ Copy GitHub Actions workflow templates to project.
 
 ```bash
 mkdir -p .github/workflows
-cp ~/.orbit/templates/<template>.yml .github/workflows/
+cp ${CLAUDE_PLUGIN_ROOT}/templates/<template>.yml .github/workflows/
 ```
 
 ### Example
 
 ```
 /orbit templates ci
-→ Copies ci.yml to .github/workflows/ci.yml
+> Copies ci.yml to .github/workflows/ci.yml
    Edit to uncomment your project type (Node/Python/Go/Rust)
 ```
 
@@ -455,7 +456,7 @@ Orbit detects monorepos/workspaces automatically during `/orbit init`:
 ### Check workspace
 
 ```bash
-~/.orbit/scripts/detect-workspace.sh .
+${CLAUDE_PLUGIN_ROOT}/scripts/detect-workspace.sh .
 # Returns: type|subprojects (e.g., "npm|packages/a,packages/b")
 ```
 
@@ -470,7 +471,6 @@ Orbit detects monorepos/workspaces automatically during `/orbit init`:
 | `/orbit test` | Run tests in Docker |
 | `/orbit test --fresh` | Run tests (no cache) |
 | `/orbit staging` | Switch to staging |
-| `/orbit prod` | Deploy to production |
 | `/orbit use dev` | Switch to local dev |
 | `/orbit use test` | Switch to test env |
 | `/orbit sidecars` | List sidecars |

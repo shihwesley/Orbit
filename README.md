@@ -23,23 +23,25 @@ Orbit Uses a **hybrid architecture**:
 
 ## 📦 Installation
 
-To install Orbit and its MCP server:
+### Claude Code Plugin (Recommended)
 
-1. **Install globally via NPM**:
+Install from the shihwesley-plugins marketplace:
 
-   ```bash
-   npm install -g @shihwesley/orbit
-   ```
+```bash
+/plugin marketplace add shihwesley/shihwesley-plugins
+/plugin install orbit@shihwesley-plugins
+```
 
-2. **Run the setup command**:
+Restart Claude Code to load the MCP server and hooks.
 
-   ```bash
-   orbit setup
-   ```
+### NPM (Alternative)
 
-   This will create `~/.orbit/`, initialize the database, install the MCP server, and register it in `~/.claude.json`.
+```bash
+npm install -g @shihwesley/orbit
+orbit setup
+```
 
-3. **Restart Claude Code** to load the MCP server, then run `orbit status` to verify.
+This creates `~/.orbit/`, initializes the database, and registers the MCP server.
 
 ## 🏁 Getting Started
 

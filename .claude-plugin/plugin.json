@@ -1,0 +1,23 @@
+{
+  "name": "orbit",
+  "version": "1.2.0",
+  "description": "Ambient dev environment management — auto-switches between dev, test, staging, and prod using Docker containers, sidecars, and task-aware classification. Provides /orbit commands for explicit control.",
+  "author": {
+    "name": "Shih Wesley",
+    "email": "shihwesley@gmail.com",
+    "url": "https://github.com/shihwesley"
+  },
+  "homepage": "https://github.com/shihwesley/Orbit",
+  "repository": "https://github.com/shihwesley/Orbit",
+  "license": "MIT",
+  "keywords": [
+    "environment-management",
+    "docker",
+    "mcp",
+    "devops",
+    "staging",
+    "testing",
+    "sidecars",
+    "claude-code"
+  ]
+}

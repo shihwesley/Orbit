@@ -8,9 +8,11 @@ SESSION_INFO=$(cat)
 SESSION_ID=$(echo "$SESSION_INFO" | jq -r '.session_id // empty' 2>/dev/null)
 PROJECT=$(echo "$SESSION_INFO" | jq -r '.cwd // empty' 2>/dev/null)
 
-[ -# Source utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$HOME/.orbit/scripts/orbit-utils.sh"
+# Resolve plugin root
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
+# Source utilities from plugin, state.db stays at ~/.orbit/
+source "$PLUGIN_ROOT/scripts/orbit-utils.sh"
 
 [ -z "$SESSION_ID" ] || [ -z "$PROJECT" ] && exit 0
 [ ! -f "$PROJECT/.orbit/config.json" ] && exit 0

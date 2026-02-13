@@ -7,9 +7,11 @@
 SESSION_INFO=$(cat)
 PROJECT=$(echo "$SESSION_INFO" | jq -r '.cwd // empty' 2>/dev/null)
 
-# Source utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$HOME/.orbit/scripts/orbit-utils.sh"
+# Resolve plugin root (hooks run with CLAUDE_PLUGIN_ROOT set by Claude Code)
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
+# Source utilities from plugin, state.db stays at ~/.orbit/
+source "$PLUGIN_ROOT/scripts/orbit-utils.sh"
 
 # Exit if no project or not an Orbit project
 [ -z "$PROJECT" ] && exit 0

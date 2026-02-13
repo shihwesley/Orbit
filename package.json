@@ -18,8 +18,10 @@
         "docker/",
         "config/",
         "templates/",
-        "skill/",
-        "hooks/"
+        "skills/",
+        ".claude-plugin/",
+        "hooks/",
+        ".mcp.json"
     ],
     "scripts": {
         "build": "cd orbit-mcp && npm install && npm run build",
